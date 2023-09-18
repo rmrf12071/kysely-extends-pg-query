@@ -1,0 +1,26 @@
+{
+  "name": "kysely-extends-pg-query",
+  "version": "0.0.1",
+  "description": "kysely plugin for PostgreSQL",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmrf12071/kysely-extends-pg-query.git"
+  },
+  "author": "rmrf12071",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rmrf12071/kysely-extends-pg-query/issues"
+  },
+  "homepage": "https://github.com/rmrf12071/kysely-extends-pg-query#readme",
+  "devDependencies": {
+    "kysely": "^0.26.3",
+    "pg-pool": "^3.6.1"
+  },
+  "peerDependencies": {
+    "kysely": "^0.26.3"
+  }
+}
