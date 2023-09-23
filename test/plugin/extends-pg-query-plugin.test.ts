@@ -1,4 +1,4 @@
-import { Kysely, PostgresDialect } from "kysely";
+import { Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
 import { assertEquals } from "https://deno.land/std@0.201.0/assert/mod.ts";
 import { ExtendsPgQueryPlugin } from "../../src/index.ts";
@@ -22,6 +22,37 @@ const db = new Kysely<Database>({
   ],
 });
 const TEST_ARRAY = [{ name: "alice" }, { name: "bob" }];
+
+Deno.test("insert", async (t) => {
+  await t.step("insert only primitive", () => {
+    const res = db.insertInto("test").values({
+      id: 0,
+      users: TEST_ARRAY,
+      created_at: new Date(0),
+    }).compile();
+    assertEquals(res.parameters.length, 3);
+    assertEquals(res.parameters[0], 0);
+    assertEquals(
+      res.parameters[1],
+      JSON.stringify(TEST_ARRAY),
+    );
+    assertEquals(res.parameters[2], new Date(0));
+  });
+
+  await t.step("insert with raw sql", () => {
+    const res = db.insertInto("test").values({
+      id: 0,
+      users: TEST_ARRAY,
+      created_at: sql`CURRENT_TIMESTAMP`,
+    }).compile();
+    assertEquals(res.parameters.length, 2);
+    assertEquals(res.parameters[0], 0);
+    assertEquals(
+      res.parameters[1],
+      JSON.stringify(TEST_ARRAY),
+    );
+  });
+});
 
 Deno.test("update", async (t) => {
   await t.step("update without table alias", () => {
