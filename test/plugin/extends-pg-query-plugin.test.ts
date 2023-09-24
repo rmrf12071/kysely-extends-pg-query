@@ -52,6 +52,25 @@ Deno.test("insert", async (t) => {
       JSON.stringify(TEST_ARRAY),
     );
   });
+
+  await t.step("insert multiple", () => {
+    const res = db.insertInto("test").values([
+      { id: 0, users: TEST_ARRAY, created_at: new Date(0) },
+      { id: 1, users: TEST_ARRAY, created_at: sql`CURRENT_TIMESTAMP` },
+    ]).compile();
+    assertEquals(res.parameters.length, 5);
+    assertEquals(res.parameters[0], 0);
+    assertEquals(
+      res.parameters[1],
+      JSON.stringify(TEST_ARRAY),
+    );
+    assertEquals(res.parameters[2], new Date(0));
+    assertEquals(res.parameters[3], 1);
+    assertEquals(
+      res.parameters[4],
+      JSON.stringify(TEST_ARRAY),
+    );
+  });
 });
 
 Deno.test("update", async (t) => {

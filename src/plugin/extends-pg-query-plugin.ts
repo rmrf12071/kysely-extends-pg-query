@@ -6,14 +6,13 @@ import {
   OperationNodeTransformer,
   PluginTransformQueryArgs,
   PluginTransformResultArgs,
-  PrimitiveValueListNode,
   QueryResult,
   RootOperationNode,
   TableNode,
   UnknownRow,
   UpdateQueryNode,
-  ValueListNode,
   ValueNode,
+  ValuesItemNode,
   ValuesNode,
 } from "kysely";
 
@@ -107,43 +106,39 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
     const { values: rawValues, ...rest } = node;
 
     // unknown format, so call super and return
-    if (
-      rawValues.kind != "ValuesNode" ||
-      (rawValues as ValuesNode).values.length != 1
-    ) {
+    if (rawValues.kind != "ValuesNode") {
       return super.transformInsertQuery(node);
     }
-    const valuesList = (rawValues as ValuesNode).values[0];
 
-    // replace JSON column with `JSON.stringify`
-    const newValuesListItem = (() => {
-      if (valuesList.kind == "PrimitiveValueListNode") {
-        return {
+    const valuesList: ValuesItemNode[] = [];
+    for (const valuesItem of (rawValues as ValuesNode).values) {
+      // replace JSON column with `JSON.stringify`
+      if (valuesItem.kind == "PrimitiveValueListNode") {
+        valuesList.push({
           kind: "PrimitiveValueListNode",
-          values: valuesList.values.map((item, index) =>
+          values: valuesItem.values.map((item, index) =>
             targetIndexes.includes(index) ? JSON.stringify(item) : item
           ),
-        } as PrimitiveValueListNode;
+        });
       }
-      return {
-        kind: "ValueListNode",
-        values: valuesList.values.map((item, index) => {
-          if (item.kind != "ValueNode" || !targetIndexes.includes(index)) {
-            return item;
-          }
-          return {
-            kind: "ValueNode",
-            value: JSON.stringify((item as ValueNode).value),
-          };
-        }),
-      } as ValueListNode;
-    })();
 
-    const values: ValuesNode = {
-      kind: "ValuesNode",
-      values: [newValuesListItem],
-    };
+      if (valuesItem.kind == "ValueListNode") {
+        valuesList.push({
+          kind: "ValueListNode",
+          values: valuesItem.values.map((item, index) => {
+            if (item.kind != "ValueNode" || !targetIndexes.includes(index)) {
+              return item;
+            }
+            return {
+              kind: "ValueNode",
+              value: JSON.stringify((item as ValueNode).value),
+            };
+          }),
+        });
+      }
+    }
 
+    const values: ValuesNode = { kind: "ValuesNode", values: valuesList };
     return super.transformInsertQuery({ ...rest, values });
   }
 
