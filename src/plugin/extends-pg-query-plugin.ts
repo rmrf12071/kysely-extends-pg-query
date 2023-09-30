@@ -103,7 +103,7 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       return super.transformInsertQuery(node);
     }
 
-    const { values: rawValues, ...rest } = node;
+    const { values: rawValues, onConflict: rawOnConflict, ...rest } = node;
 
     // unknown format, so call super and return
     if (rawValues.kind != "ValuesNode") {
@@ -117,7 +117,9 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
         valuesList.push({
           kind: "PrimitiveValueListNode",
           values: valuesItem.values.map((item, index) =>
-            targetIndexes.includes(index) ? JSON.stringify(item) : item
+            targetIndexes.includes(index) && item !== null
+              ? JSON.stringify(item)
+              : item
           ),
         });
       }
@@ -126,7 +128,10 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
         valuesList.push({
           kind: "ValueListNode",
           values: valuesItem.values.map((item, index) => {
-            if (item.kind != "ValueNode" || !targetIndexes.includes(index)) {
+            if (
+              item.kind != "ValueNode" || !targetIndexes.includes(index) ||
+              (item as ValueNode).value === null
+            ) {
               return item;
             }
             return {
@@ -138,8 +143,33 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       }
     }
 
+    // onConflict: replace JSON column with `JSON.stringify`
+    const onConflict = (() => {
+      if (!rawOnConflict?.updates) return rawOnConflict;
+      const updates = [];
+      for (const item of rawOnConflict.updates) {
+        if (
+          !jsonTargets?.has(item.column.column.name) ||
+          item.value.kind != "ValueNode"
+        ) {
+          updates.push(item);
+          continue;
+        }
+        const itemValue = item.value as ValueNode;
+        if (itemValue.value === null) {
+          updates.push(item);
+          continue;
+        }
+        updates.push({
+          ...item,
+          value: { ...itemValue, value: JSON.stringify(itemValue.value) },
+        });
+      }
+      return { ...rawOnConflict, updates };
+    })();
+
     const values: ValuesNode = { kind: "ValuesNode", values: valuesList };
-    return super.transformInsertQuery({ ...rest, values });
+    return super.transformInsertQuery({ ...rest, values, onConflict });
   }
 
   protected override transformUpdateQuery(
@@ -171,7 +201,7 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       if (
         !targets?.has(update.column.column.name) ||
         update.value.kind != "ValueNode" ||
-        typeof (update.value as ValueNode).value != "object"
+        (update.value as ValueNode).value === null
       ) {
         return update;
       }
