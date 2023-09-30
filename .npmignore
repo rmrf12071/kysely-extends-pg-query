@@ -1,5 +1,9 @@
 .vscode
 node_modules/
+scripts/
+src/
 test/
 .editorconfig
 .gitignore
+package-lock.json
+tsconfig.json
