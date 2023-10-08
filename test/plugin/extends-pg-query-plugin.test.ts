@@ -1,4 +1,4 @@
-import { Kysely, PostgresDialect, sql } from "kysely";
+import { ColumnType, Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
 import { assertEquals } from "https://deno.land/std@0.201.0/assert/mod.ts";
 import { ExtendsPgQueryPlugin } from "../../src/index.ts";
@@ -8,9 +8,11 @@ interface Database {
     id: number;
     users: { name: string }[] | null;
     created_at: Date;
+    updated_at: ColumnType<Date, never, Date>;
   };
   test2: {
     foo: string;
+    updated_at: ColumnType<Date, never, never>;
   };
 }
 
@@ -18,12 +20,18 @@ const dialect = new PostgresDialect({ pool: new PgPool() });
 const db = new Kysely<Database>({
   dialect,
   plugins: [
-    new ExtendsPgQueryPlugin<Database>({ jsonColumns: ["test.users"] }),
+    new ExtendsPgQueryPlugin<Database>({
+      jsonColumns: ["test.users"],
+      autoUpdates: {
+        "test.updated_at": "DEFAULT",
+        "test2.updated_at": "CURRENT_TIMESTAMP",
+      },
+    }),
   ],
 });
 const TEST_ARRAY = [{ name: "alice" }, { name: "bob" }];
 
-Deno.test("insert", async (t) => {
+Deno.test("json:insert", async (t) => {
   await t.step("insert only primitive", () => {
     // not null
     const res = db.insertInto("test").values({
@@ -100,7 +108,7 @@ Deno.test("insert", async (t) => {
   });
 });
 
-Deno.test("update", async (t) => {
+Deno.test("json:update", async (t) => {
   await t.step("update without table alias", () => {
     // not null
     const res = db.updateTable("test").set({
@@ -137,5 +145,29 @@ Deno.test("update", async (t) => {
       created_at: sql`CURRENT_TIMESTAMP`,
     }).compile();
     assertEquals(res2.parameters[0], null);
+  });
+});
+
+Deno.test("auto update", async (t) => {
+  await t.step("if not specified, auto update", () => {
+    const res = db.updateTable("test").set({
+      users: null,
+    }).compile();
+    assertEquals(res.sql.includes('"updated_at" = DEFAULT'), true);
+  });
+  await t.step("if specified, no auto update", () => {
+    const res = db.updateTable("test").set({
+      users: null,
+      updated_at: new Date(),
+    }).compile();
+    assertEquals(res.parameters.length, 2);
+    assertEquals(res.sql.includes('"updated_at" = DEFAULT'), false);
+  });
+  await t.step("auto update for no json table", () => {
+    const res = db.updateTable("test2").set({
+      foo: "bar",
+    }).compile();
+    assertEquals(res.parameters.length, 1);
+    assertEquals(res.sql.includes('"updated_at" = CURRENT_TIMESTAMP'), true);
   });
 });

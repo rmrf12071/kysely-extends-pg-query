@@ -7,6 +7,7 @@ import {
   PluginTransformQueryArgs,
   PluginTransformResultArgs,
   QueryResult,
+  RawNode,
   RootOperationNode,
   TableNode,
   UnknownRow,
@@ -16,6 +17,9 @@ import {
   ValuesNode,
 } from "kysely";
 
+// deno-lint-ignore ban-types
+type StringWithSuggestion<T extends string> = T | (string & {});
+
 /**
  * example
  *
@@ -24,6 +28,7 @@ import {
  *   id: number;
  *   name: string;
  *   family: { name: string }[];
+ *   updated_at: ColumnType<Date, never, never>;
  * };
  * interface Database {
  *   person: Person;
@@ -33,6 +38,7 @@ import {
  *   plugins: [
  *     new ExtendsPgQueryPlugin<Database>({
  *       jsonColumns: ["person.family"],
+ *       autoUpdates: [{ "person.updated_at": "DEFAULT" }],
  *     }),
  *   ],
  * });
@@ -41,7 +47,16 @@ import {
 export default class ExtendsPgQueryPlugin<DB> implements KyselyPlugin {
   private readonly transformer: ExtendsPgQueryTransformer;
 
-  constructor(options?: { jsonColumns?: AnyColumnWithTable<DB, keyof DB>[] }) {
+  constructor(
+    options?: {
+      jsonColumns?: AnyColumnWithTable<DB, keyof DB>[];
+      autoUpdates?: {
+        [key in AnyColumnWithTable<DB, keyof DB>]?: StringWithSuggestion<
+          "DEFAULT"
+        >;
+      };
+    },
+  ) {
     const jsonColumns = new Map<string, Set<string>>();
     if (options?.jsonColumns) {
       for (const item of options.jsonColumns) {
@@ -53,7 +68,31 @@ export default class ExtendsPgQueryPlugin<DB> implements KyselyPlugin {
       }
     }
 
-    this.transformer = new ExtendsPgQueryTransformer({ jsonColumns });
+    const autoUpdates = new Map<
+      string,
+      Map<string, StringWithSuggestion<"DEFAULT">>
+    >();
+    if (options?.autoUpdates) {
+      for (
+        const key of Object.keys(options.autoUpdates) as AnyColumnWithTable<
+          DB,
+          keyof DB
+        >[]
+      ) {
+        const item = options.autoUpdates[key];
+        if (!item) continue;
+        const arr = key.split(".");
+        if (!autoUpdates.has(arr[0])) {
+          autoUpdates.set(arr[0], new Map());
+        }
+        autoUpdates.get(arr[0])?.set(arr[1], item);
+      }
+    }
+
+    this.transformer = new ExtendsPgQueryTransformer({
+      jsonColumns,
+      autoUpdates,
+    });
   }
 
   transformQuery(args: PluginTransformQueryArgs): RootOperationNode {
@@ -70,10 +109,20 @@ export default class ExtendsPgQueryPlugin<DB> implements KyselyPlugin {
 // transformer
 class ExtendsPgQueryTransformer extends OperationNodeTransformer {
   readonly #jsonColumns: Map<string, Set<string>>; // for define `JSON.stringify` columns
+  readonly #autoUpdates: Map<
+    string,
+    Map<string, StringWithSuggestion<"DEFAULT">>
+  >; // for define auto update columns
 
-  constructor(options: { jsonColumns: Map<string, Set<string>> }) {
+  constructor(
+    options: {
+      jsonColumns: Map<string, Set<string>>;
+      autoUpdates: Map<string, Map<string, StringWithSuggestion<"DEFAULT">>>;
+    },
+  ) {
     super();
     this.#jsonColumns = options.jsonColumns;
+    this.#autoUpdates = options.autoUpdates;
   }
 
   protected override transformInsertQuery(
@@ -191,15 +240,26 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       }
     })();
     // if unknown format or not target table, call super and return
-    if (!table || !this.#jsonColumns.has(table)) {
+    if (
+      !table || (!this.#jsonColumns.has(table) && !this.#autoUpdates.has(table))
+    ) {
       return super.transformUpdateQuery(node);
     }
+
+    // auto update columns
+    const autoUpdates = this.#autoUpdates.get(table);
+    const autoUpdateTargets = new Set(autoUpdates?.keys());
 
     // update `node.updates`: JSON.stringify
     const targets = this.#jsonColumns.get(table);
     const updates = node.updates.map((update) => {
+      const columnName = update.column.column.name;
+
+      // if specified, remove from auto update
+      autoUpdateTargets.delete(columnName);
+
       if (
-        !targets?.has(update.column.column.name) ||
+        !targets || !targets.has(columnName) ||
         update.value.kind != "ValueNode" ||
         (update.value as ValueNode).value === null
       ) {
@@ -213,6 +273,24 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
         },
       };
     });
+
+    // auto update if not specified
+    for (const column of autoUpdateTargets) {
+      const value = autoUpdates?.get(column);
+      if (value == undefined) continue;
+      updates.push({
+        kind: "ColumnUpdateNode",
+        column: {
+          kind: "ColumnNode",
+          column: { kind: "IdentifierNode", name: column },
+        },
+        value: {
+          kind: "RawNode",
+          sqlFragments: [value],
+          parameters: [],
+        } as RawNode,
+      });
+    }
 
     // call super and return
     return super.transformUpdateQuery({ ...node, updates });
