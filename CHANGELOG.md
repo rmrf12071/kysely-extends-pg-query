@@ -1,5 +1,12 @@
 # kysely-extends-pg-query changelog
 
+## 0.1.0
+
+### Notable changes
+
+- feat: add "auto update" feature to plugin
+- feat: add utility function "executePagination"
+
 ## 0.0.2
 
 ### Notable changes

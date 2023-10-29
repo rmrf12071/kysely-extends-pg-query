@@ -7,6 +7,8 @@ This plugin is developed with `Deno`, and also works `Node.js`(CommonJS).
 
 - Auto `JSON.stringify` for json/jsonb column(s)
   - To avoid SQL error on `pg-pool` when we use `Array` value to insert/update any column
+- Auto updates for specified column(s)
+- Utility function for pagination
 
 ## Installation for Node.js
 
@@ -24,14 +26,15 @@ import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf1207
 
 ## Usage Example
 
-The following example is a part of [test code](./test/plugin/extends-pg-query-plugin.test.ts).
+### Plugin
 
 ```ts
 interface Database {
   test: {
     id: number;
     users: { name: string }[];
-    created_at: Date;
+    created_at: ColumnType<Date, never, never>;
+    updated_at: ColumnType<Date, never, never>;
   };
   test2: {
     foo: string;
@@ -43,8 +46,18 @@ const db = new Kysely<Database>({
   dialect,
   plugins: [
     new ExtendsPgQueryPlugin<Database>({
-      jsonColumns: ["test.users"]
+      jsonColumns: ["test.users"],
+      autoUpdates: [{ "test.updated_at": "DEFAULT" }],
     }),
   ],
 });
+```
+
+### Pagination
+
+```ts
+ const { data, total } = await executePagination(
+    db.selectFrom("pet").select("name"),
+    { currentPage: 1, perPage: 10 }
+ );
 ```

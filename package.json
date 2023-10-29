@@ -1,11 +1,12 @@
 {
   "name": "kysely-extends-pg-query",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "kysely plugin for PostgreSQL",
   "main": "dist/index.js",
   "scripts": {
     "build": "deno run --allow-run --allow-read --allow-write scripts/build.ts",
-    "test": "deno test --allow-net"
+    "test": "deno test --allow-net",
+    "pre-publish": "npm run test && npm run build && npm publish --dry-run"
   },
   "repository": {
     "type": "git",
