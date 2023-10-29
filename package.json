@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "deno run --allow-run --allow-read --allow-write scripts/build.ts",
-    "test": "deno test"
+    "test": "deno test --allow-net"
   },
   "repository": {
     "type": "git",

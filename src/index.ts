@@ -1,3 +1,6 @@
 import ExtendsPgQueryPlugin from "./plugin/extends-pg-query-plugin.ts";
+import executePagination, {
+  validatePagination,
+} from "./utils/executePagination.ts";
 
-export { ExtendsPgQueryPlugin };
+export { executePagination, ExtendsPgQueryPlugin, validatePagination };
