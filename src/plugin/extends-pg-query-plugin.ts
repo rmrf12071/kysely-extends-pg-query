@@ -192,28 +192,56 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       }
     }
 
+    // auto update columns
+    const autoUpdates = this.#autoUpdates.get(table);
+    const autoUpdateTargets = new Set(autoUpdates?.keys());
+
     // onConflict: replace JSON column with `JSON.stringify`
     const onConflict = (() => {
-      if (!rawOnConflict?.updates) return rawOnConflict;
+      // if (!rawOnConflict?.updates) return rawOnConflict;
+      if (!rawOnConflict) return rawOnConflict;
       const updates = [];
-      for (const item of rawOnConflict.updates) {
-        if (
-          !jsonTargets?.has(item.column.column.name) ||
-          item.value.kind != "ValueNode"
-        ) {
-          updates.push(item);
-          continue;
+      if (rawOnConflict.updates) {
+        for (const item of rawOnConflict.updates) {
+          autoUpdateTargets.delete(item.column.column.name);
+
+          if (
+            !jsonTargets?.has(item.column.column.name) ||
+            item.value.kind != "ValueNode"
+          ) {
+            updates.push(item);
+            continue;
+          }
+          const itemValue = item.value as ValueNode;
+          if (itemValue.value === null) {
+            updates.push(item);
+            continue;
+          }
+          updates.push({
+            ...item,
+            value: { ...itemValue, value: JSON.stringify(itemValue.value) },
+          });
         }
-        const itemValue = item.value as ValueNode;
-        if (itemValue.value === null) {
-          updates.push(item);
-          continue;
-        }
+      }
+
+      // auto update if not specified
+      for (const column of autoUpdateTargets) {
+        const value = autoUpdates?.get(column);
+        if (value == undefined) continue;
         updates.push({
-          ...item,
-          value: { ...itemValue, value: JSON.stringify(itemValue.value) },
+          kind: "ColumnUpdateNode" as const,
+          column: {
+            kind: "ColumnNode" as const,
+            column: { kind: "IdentifierNode" as const, name: column },
+          },
+          value: {
+            kind: "RawNode",
+            sqlFragments: [value],
+            parameters: [],
+          } as RawNode,
         });
       }
+
       return { ...rawOnConflict, updates };
     })();
 

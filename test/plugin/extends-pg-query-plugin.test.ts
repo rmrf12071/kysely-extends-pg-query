@@ -170,4 +170,13 @@ Deno.test("auto update", async (t) => {
     assertEquals(res.parameters.length, 1);
     assertEquals(res.sql.includes('"updated_at" = CURRENT_TIMESTAMP'), true);
   });
+  await t.step("auto update on conflict", () => {
+    const res = db.insertInto("test").values({
+      id: 1,
+      users: null,
+      created_at: new Date(),
+    }).onConflict((oc) => oc.column("id").doUpdateSet({}).where("id", "=", 1))
+      .compile();
+    assertEquals(res.sql.includes('"updated_at" = DEFAULT'), true);
+  });
 });
