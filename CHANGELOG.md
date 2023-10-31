@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.1.1
+
+### Notable changes
+
+- feat: "auto update" feature on plugin supports "onConflict"
+
 ## 0.1.0
 
 ### Notable changes
