@@ -136,70 +136,69 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
     }
     // if the table is not target, call super and return
     const table = node.into.table.identifier.name;
-    if (!table || !this.#jsonColumns.has(table)) {
-      return super.transformInsertQuery(node);
-    }
-
     const jsonTargets = this.#jsonColumns.get(table);
-    const insertTargets = node.columns.map((item) => item.column.name);
-    const targetIndexes: number[] = [];
-    for (let i = 0; i < insertTargets.length; i++) {
-      if (jsonTargets?.has(insertTargets[i])) targetIndexes.push(i);
-    }
-
-    // if target columns don't include json column, call super and return
-    if (targetIndexes.length == 0) {
+    const autoUpdates = this.#autoUpdates.get(table);
+    if (!table || (!jsonTargets && !autoUpdates)) {
       return super.transformInsertQuery(node);
     }
 
     const { values: rawValues, onConflict: rawOnConflict, ...rest } = node;
 
-    // unknown format, so call super and return
-    if (rawValues.kind != "ValuesNode") {
+    // if target columns don't include json column and no auto update, call super and return
+    const targetIndexes = (() => {
+      if (!jsonTargets) return [];
+      const insertTargets = node.columns.map((item) => item.column.name);
+      const arr: number[] = [];
+      for (let i = 0; i < insertTargets.length; i++) {
+        if (jsonTargets.has(insertTargets[i])) arr.push(i);
+      }
+      return arr;
+    })();
+    if (targetIndexes.length == 0 && !autoUpdates) {
       return super.transformInsertQuery(node);
     }
 
+    // replace JSON column with `JSON.stringify`
     const valuesList: ValuesItemNode[] = [];
-    for (const valuesItem of (rawValues as ValuesNode).values) {
-      // replace JSON column with `JSON.stringify`
-      if (valuesItem.kind == "PrimitiveValueListNode") {
-        valuesList.push({
-          kind: "PrimitiveValueListNode",
-          values: valuesItem.values.map((item, index) =>
-            targetIndexes.includes(index) && item !== null
-              ? JSON.stringify(item)
-              : item
-          ),
-        });
-      }
+    if (rawValues.kind == "ValuesNode" && targetIndexes.length > 0) {
+      for (const valuesItem of (rawValues as ValuesNode).values) {
+        if (valuesItem.kind == "PrimitiveValueListNode") {
+          valuesList.push({
+            kind: "PrimitiveValueListNode",
+            values: valuesItem.values.map((item, index) =>
+              targetIndexes.includes(index) && item !== null
+                ? JSON.stringify(item)
+                : item
+            ),
+          });
+        }
 
-      if (valuesItem.kind == "ValueListNode") {
-        valuesList.push({
-          kind: "ValueListNode",
-          values: valuesItem.values.map((item, index) => {
-            if (
-              item.kind != "ValueNode" || !targetIndexes.includes(index) ||
-              (item as ValueNode).value === null
-            ) {
-              return item;
-            }
-            return {
-              kind: "ValueNode",
-              value: JSON.stringify((item as ValueNode).value),
-            };
-          }),
-        });
+        if (valuesItem.kind == "ValueListNode") {
+          valuesList.push({
+            kind: "ValueListNode",
+            values: valuesItem.values.map((item, index) => {
+              if (
+                item.kind != "ValueNode" || !targetIndexes.includes(index) ||
+                (item as ValueNode).value === null
+              ) {
+                return item;
+              }
+              return {
+                kind: "ValueNode",
+                value: JSON.stringify((item as ValueNode).value),
+              };
+            }),
+          });
+        }
       }
     }
 
     // auto update columns
-    const autoUpdates = this.#autoUpdates.get(table);
     const autoUpdateTargets = new Set(autoUpdates?.keys());
 
     // onConflict: replace JSON column with `JSON.stringify`
     const onConflict = (() => {
-      // if (!rawOnConflict?.updates) return rawOnConflict;
-      if (!rawOnConflict) return rawOnConflict;
+      if (!rawOnConflict || autoUpdateTargets.size == 0) return rawOnConflict;
       const updates = [];
       if (rawOnConflict.updates) {
         for (const item of rawOnConflict.updates) {
@@ -245,7 +244,9 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       return { ...rawOnConflict, updates };
     })();
 
-    const values: ValuesNode = { kind: "ValuesNode", values: valuesList };
+    const values = rawValues.kind == "ValuesNode"
+      ? { kind: "ValuesNode" as const, values: valuesList }
+      : rawValues;
     return super.transformInsertQuery({ ...rest, values, onConflict });
   }
 

@@ -1,5 +1,9 @@
 import { ReferenceExpression, SelectQueryBuilder } from "kysely";
 
+type UnpackPromise<T> = T extends Promise<(infer U)> ? U : T;
+
+export type Pagination = { currentPage: number; perPage: number };
+
 /**
  * validate pagination
  * @param pagination unvalidated pagination
@@ -8,7 +12,7 @@ import { ReferenceExpression, SelectQueryBuilder } from "kysely";
  */
 export function validatePagination(
   pagination: { currentPage: unknown; perPage: unknown },
-  _default: { currentPage: number; perPage: number } = {
+  _default: Pagination = {
     currentPage: 1,
     perPage: 10,
   },
@@ -39,14 +43,16 @@ export function validatePagination(
  * );
  * ```
  */
-export default async function executePagination<DB, TB extends keyof DB>(
-  sqb: SelectQueryBuilder<DB, TB, unknown>,
+export default async function executePagination<DB, TB extends keyof DB, O>(
+  sqb: SelectQueryBuilder<DB, TB, O>,
   pagination: { currentPage: number; perPage: number },
   options?: {
     _default?: { currentPage: number; perPage: number };
     distinctKey?: ReferenceExpression<DB, TB>;
   },
-) {
+): Promise<
+  { data: UnpackPromise<ReturnType<(typeof sqb)["execute"]>>; total: number }
+> {
   const { currentPage, perPage } = validatePagination(
     pagination,
     options?._default,

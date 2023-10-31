@@ -11,6 +11,7 @@ interface Database {
     updated_at: ColumnType<Date, never, Date>;
   };
   test2: {
+    id: number;
     foo: string;
     updated_at: ColumnType<Date, never, never>;
   };
@@ -178,5 +179,15 @@ Deno.test("auto update", async (t) => {
     }).onConflict((oc) => oc.column("id").doUpdateSet({}).where("id", "=", 1))
       .compile();
     assertEquals(res.sql.includes('"updated_at" = DEFAULT'), true);
+  });
+  await t.step("auto update on conflict (no json column)", () => {
+    const res = db.insertInto("test2").values({
+      id: 1,
+      foo: "",
+    }).onConflict((oc) =>
+      oc.column("id").doUpdateSet({ foo: "bar" }).where("id", "=", 1)
+    )
+      .compile();
+    assertEquals(res.sql.includes('"updated_at" = CURRENT_TIMESTAMP'), true);
   });
 });
