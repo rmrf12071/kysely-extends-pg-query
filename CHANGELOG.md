@@ -1,5 +1,12 @@
 # kysely-extends-pg-query changelog
 
+## 0.1.2
+
+### Notable changes
+
+- bugfix: "auto update" works on table of no "jsonColumns"
+- bugfix: fix type of executePagination
+
 ## 0.1.1
 
 ### Notable changes
