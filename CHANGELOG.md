@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.1.3
+
+### Notable changes
+
+- bugfix: "auto update" works on table of no "jsonColumns"
+
 ## 0.1.2
 
 ### Notable changes
