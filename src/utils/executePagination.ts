@@ -61,7 +61,10 @@ export default async function executePagination<DB, TB extends keyof DB, O>(
   const listQuery = sqb.limit(perPage).offset(offset);
   const data = await listQuery.execute();
 
-  if (data.length > 0 && data.length < perPage) {
+  if (
+    (data.length > 0 && data.length < perPage) ||
+    (data.length == 0 && offset == 0)
+  ) {
     return {
       data,
       total: offset + data.length,

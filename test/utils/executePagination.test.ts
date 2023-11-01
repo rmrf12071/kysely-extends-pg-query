@@ -1,6 +1,8 @@
 import { ColumnType, Generated, Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
-import executePagination from "../../src/utils/executePagination.ts";
+import executePagination, {
+  validatePagination,
+} from "../../src/utils/executePagination.ts";
 import { assertEquals } from "https://deno.land/std@0.201.0/assert/assert_equals.ts";
 
 interface SystemDatabase {
@@ -102,6 +104,26 @@ Deno.test("executePagination", async () => {
     ]).execute();
   }
 
+  // validate pagination
+  const v1 = validatePagination({ currentPage: 0, perPage: "100" });
+  assertEquals(v1.currentPage, 1);
+  assertEquals(v1.perPage, 100);
+  const v2 = validatePagination({ currentPage: "abc", perPage: 5n }, {
+    currentPage: 3,
+    perPage: 10,
+  });
+  assertEquals(v2.currentPage, 3);
+  assertEquals(v2.perPage, 5);
+  const v3 = validatePagination({ currentPage: "5", perPage: "abc" }, {
+    currentPage: 3,
+    perPage: 10,
+  });
+  assertEquals(v3.currentPage, 5);
+  assertEquals(v3.perPage, 10);
+  const v4 = validatePagination({ currentPage: 2, perPage: 20 });
+  assertEquals(v4.currentPage, 2);
+  assertEquals(v4.perPage, 20);
+
   // currentPage=0(out of range) -> currentPage=1
   await (async () => {
     const res = await executePagination(db.selectFrom("pet").select("name"), {
@@ -174,6 +196,19 @@ Deno.test("executePagination", async () => {
     );
     assertEquals(res.data.length, 1);
     assertEquals(res.total, 2);
+  })();
+
+  // no data
+  await (async () => {
+    const res = await executePagination(
+      db.selectFrom("pet").select("name").where("owner_id", "=", 3),
+      {
+        currentPage: 1,
+        perPage: 5,
+      },
+    );
+    assertEquals(res.data.length, 0);
+    assertEquals(res.total, 0);
   })();
 
   await postgres.destroy();
