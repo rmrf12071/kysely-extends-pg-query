@@ -244,7 +244,7 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       return { ...rawOnConflict, updates };
     })();
 
-    const values = rawValues.kind == "ValuesNode"
+    const values = valuesList.length > 0
       ? { kind: "ValuesNode" as const, values: valuesList }
       : rawValues;
     return super.transformInsertQuery({ ...rest, values, onConflict });

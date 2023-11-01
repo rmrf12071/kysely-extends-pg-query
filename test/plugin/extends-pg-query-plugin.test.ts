@@ -1,4 +1,4 @@
-import { ColumnType, Kysely, PostgresDialect, sql } from "kysely";
+import { ColumnType, Generated, Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
 import { assertEquals } from "https://deno.land/std@0.201.0/assert/mod.ts";
 import { ExtendsPgQueryPlugin } from "../../src/index.ts";
@@ -15,6 +15,19 @@ interface Database {
     foo: string;
     updated_at: ColumnType<Date, never, never>;
   };
+  test3: {
+    id: Generated<number>;
+    users: { name: string }[] | null;
+    foo: string | null;
+  };
+  test4: {
+    id: Generated<number>;
+    foo: string | null;
+    updated_at: ColumnType<Date, never, never>;
+  };
+  test5: {
+    id: Generated<number>;
+  };
 }
 
 const dialect = new PostgresDialect({ pool: new PgPool() });
@@ -22,10 +35,11 @@ const db = new Kysely<Database>({
   dialect,
   plugins: [
     new ExtendsPgQueryPlugin<Database>({
-      jsonColumns: ["test.users"],
+      jsonColumns: ["test.users", "test3.users"],
       autoUpdates: {
         "test.updated_at": "DEFAULT",
         "test2.updated_at": "CURRENT_TIMESTAMP",
+        "test4.updated_at": "DEFAULT",
       },
     }),
   ],
@@ -106,6 +120,16 @@ Deno.test("json:insert", async (t) => {
     assertEquals(res.parameters[2], new Date(0));
     assertEquals(res.parameters[3], 1);
     assertEquals(res.parameters[4], null);
+  });
+
+  await t.step("insert no json", () => {
+    const res = db.insertInto("test3").values([
+      { id: 0, created_at: new Date(0) },
+    ]).compile();
+    assertEquals(
+      res.sql,
+      'insert into "test3" ("id", "created_at") values ($1, $2)',
+    );
   });
 });
 
@@ -189,5 +213,29 @@ Deno.test("auto update", async (t) => {
     )
       .compile();
     assertEquals(res.sql.includes('"updated_at" = CURRENT_TIMESTAMP'), true);
+  });
+});
+
+Deno.test("other", async (t) => {
+  await t.step("no json & auto update", () => {
+    const res1 = db.insertInto("test4").values({ id: 1 }).onConflict((oc) =>
+      oc.column("id").doUpdateSet({ foo: "bar" })
+    ).compile();
+    assertEquals(
+      res1.sql,
+      'insert into "test4" ("id") values ($1) on conflict ("id") do update set "foo" = $2, "updated_at" = DEFAULT',
+    );
+    const res2 = db.updateTable("test4").set({ id: 1 }).compile();
+    assertEquals(
+      res2.sql,
+      'update "test4" set "id" = $1, "updated_at" = DEFAULT',
+    );
+  });
+
+  await t.step("no json & no auto update", () => {
+    const res1 = db.insertInto("test5").values({ id: 1 }).compile();
+    assertEquals(res1.sql, 'insert into "test5" ("id") values ($1)');
+    const res2 = db.updateTable("test5").set({ id: 1 }).compile();
+    assertEquals(res2.sql, 'update "test5" set "id" = $1');
   });
 });
