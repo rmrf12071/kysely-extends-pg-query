@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.1.5
+
+### Notable changes
+
+- feat: add option to "executePagination" for complex SQL
+
 ## 0.1.4
 
 ### Notable changes
