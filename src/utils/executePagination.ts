@@ -71,7 +71,7 @@ export default async function executePagination<DB, TB extends keyof DB, O>(
     };
   }
 
-  const countQuery = sqb.clearSelect().select((
+  const countQuery = sqb.clearSelect().clearOrderBy().select((
     eb,
   ) => [
     (!options?.distinctKey

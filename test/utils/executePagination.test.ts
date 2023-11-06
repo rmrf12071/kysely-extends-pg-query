@@ -157,6 +157,21 @@ Deno.test("executePagination", async () => {
     assertEquals(res.total, 5);
   })();
 
+  // first page(order by)
+  await (async () => {
+    const res = await executePagination(
+      db.selectFrom("pet").select("name").where("owner_id", "=", 1).orderBy(
+        "id",
+      ),
+      {
+        currentPage: 1,
+        perPage: 3,
+      },
+    );
+    assertEquals(res.data.length, 3);
+    assertEquals(res.total, 5);
+  })();
+
   // last page
   await (async () => {
     const res = await executePagination(
