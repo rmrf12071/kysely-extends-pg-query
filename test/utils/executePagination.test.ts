@@ -148,10 +148,7 @@ Deno.test("executePagination", async () => {
   await (async () => {
     const res = await executePagination(
       db.selectFrom("pet").select("name").where("owner_id", "=", 1),
-      {
-        currentPage: 1,
-        perPage: 3,
-      },
+      { currentPage: 1, perPage: 3 },
     );
     assertEquals(res.data.length, 3);
     assertEquals(res.total, 5);
@@ -163,10 +160,7 @@ Deno.test("executePagination", async () => {
       db.selectFrom("pet").select("name").where("owner_id", "=", 1).orderBy(
         "id",
       ),
-      {
-        currentPage: 1,
-        perPage: 3,
-      },
+      { currentPage: 1, perPage: 3 },
     );
     assertEquals(res.data.length, 3);
     assertEquals(res.total, 5);
@@ -176,10 +170,7 @@ Deno.test("executePagination", async () => {
   await (async () => {
     const res = await executePagination(
       db.selectFrom("pet").select("name").where("owner_id", "=", 1),
-      {
-        currentPage: 2,
-        perPage: 3,
-      },
+      { currentPage: 2, perPage: 3 },
     );
     assertEquals(res.data.length, 2);
     assertEquals(res.total, 5);
@@ -189,10 +180,7 @@ Deno.test("executePagination", async () => {
   await (async () => {
     const res = await executePagination(
       db.selectFrom("pet").select("species").distinct(),
-      {
-        currentPage: 1,
-        perPage: 3,
-      },
+      { currentPage: 1, perPage: 3 },
       { distinctKey: "species" },
     );
     assertEquals(res.data.length, 2);
@@ -203,10 +191,7 @@ Deno.test("executePagination", async () => {
   await (async () => {
     const res = await executePagination(
       db.selectFrom("pet").select("species").distinct(),
-      {
-        currentPage: 1,
-        perPage: 1,
-      },
+      { currentPage: 1, perPage: 1 },
       { distinctKey: "species" },
     );
     assertEquals(res.data.length, 1);
@@ -217,13 +202,21 @@ Deno.test("executePagination", async () => {
   await (async () => {
     const res = await executePagination(
       db.selectFrom("pet").select("name").where("owner_id", "=", 3),
-      {
-        currentPage: 1,
-        perPage: 5,
-      },
+      { currentPage: 1, perPage: 5 },
     );
     assertEquals(res.data.length, 0);
     assertEquals(res.total, 0);
+  })();
+
+  // sub query
+  await (async () => {
+    const res = await executePagination(
+      db.selectFrom("pet").select("name").where("owner_id", "=", 1),
+      { currentPage: 1, perPage: 3 },
+      { db },
+    );
+    assertEquals(res.data.length, 3);
+    assertEquals(res.total, 5);
   })();
 
   await postgres.destroy();

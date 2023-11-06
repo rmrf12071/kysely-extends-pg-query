@@ -1,4 +1,9 @@
-import { ReferenceExpression, SelectQueryBuilder } from "kysely";
+import {
+  Kysely,
+  ReferenceExpression,
+  SelectQueryBuilder,
+  Transaction,
+} from "kysely";
 
 type UnpackPromise<T> = T extends Promise<(infer U)> ? U : T;
 
@@ -28,18 +33,50 @@ export function validatePagination(
   return { currentPage, perPage };
 }
 
+// overload: "distinctKey" and "db" cannot be specified at the same time
+export default async function executePagination<DB, TB extends keyof DB, O>(
+  sqb: SelectQueryBuilder<DB, TB, O>,
+  pagination: { currentPage: number; perPage: number },
+  options?: {
+    _default?: { currentPage: number; perPage: number };
+    distinctKey?: ReferenceExpression<DB, TB>;
+  },
+): Promise<
+  { data: UnpackPromise<ReturnType<(typeof sqb)["execute"]>>; total: number }
+>;
+export default async function executePagination<DB, TB extends keyof DB, O>(
+  sqb: SelectQueryBuilder<DB, TB, O>,
+  pagination: { currentPage: number; perPage: number },
+  options?: {
+    _default?: { currentPage: number; perPage: number };
+    db?: Kysely<DB> | Transaction<DB>;
+  },
+): Promise<
+  { data: UnpackPromise<ReturnType<(typeof sqb)["execute"]>>; total: number }
+>;
+
 /**
  * executes the query and counts the total
  * @param sqb SelectQueryBuilder
  * @param pagination current page(starts 1) and per page
- * @param options default currentPage/perPage and key of distinct
+ * @param options default currentPage/perPage, key of distinct and db/trx
  * @returns selected data and total
  *
  * example
  * ```ts
+ * // select "name" from "pet" limit 10 offset 0
+ * // select count(*) as "count" from "pet"
  * const { data, total } = await executePagination(
  *            db.selectFrom("pet").select("name"),
  *            { currentPage: 1, perPage: 10 }
+ * );
+ *
+ * // select "name" from "pet" limit 10 offset 0
+ * // select count(*) as "count" from (select "name" from "pet") as "table"
+ * const { data, total } = await executePagination(
+ *            db.selectFrom("pet").select("name"),
+ *            { currentPage: 1, perPage: 10 },
+ *            { db }
  * );
  * ```
  */
@@ -49,6 +86,7 @@ export default async function executePagination<DB, TB extends keyof DB, O>(
   options?: {
     _default?: { currentPage: number; perPage: number };
     distinctKey?: ReferenceExpression<DB, TB>;
+    db?: Kysely<DB> | Transaction<DB>;
   },
 ): Promise<
   { data: UnpackPromise<ReturnType<(typeof sqb)["execute"]>>; total: number }
@@ -71,13 +109,20 @@ export default async function executePagination<DB, TB extends keyof DB, O>(
     };
   }
 
-  const countQuery = sqb.clearSelect().clearOrderBy().select((
-    eb,
-  ) => [
-    (!options?.distinctKey
-      ? eb.fn.countAll()
-      : eb.fn.count(options?.distinctKey).distinct()).as("count"),
-  ]);
+  const countQuery = (() => {
+    if (options?.db) {
+      return options.db.selectFrom(() => sqb.as("table")).select((eb) =>
+        eb.fn.countAll().as("count")
+      );
+    }
+    return sqb.clearSelect().clearOrderBy().select((
+      eb,
+    ) => [
+      (!options?.distinctKey
+        ? eb.fn.countAll()
+        : eb.fn.count(options?.distinctKey).distinct()).as("count"),
+    ]);
+  })();
   const total = await countQuery.executeTakeFirst();
   if (total && "count" in total) {
     return { data, total: Number(total.count) };
