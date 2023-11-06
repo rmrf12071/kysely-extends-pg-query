@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.1.4
+
+### Notable changes
+
+- bugfix: "executePagination" with "order by"
+
 ## 0.1.3
 
 ### Notable changes
