@@ -1,5 +1,12 @@
 # kysely-extends-pg-query changelog
 
+## 0.1.6
+
+### Notable changes
+
+- feat: add "executeTotal"
+- bugfix: "executePagination" with "group by"
+
 ## 0.1.5
 
 ### Notable changes
