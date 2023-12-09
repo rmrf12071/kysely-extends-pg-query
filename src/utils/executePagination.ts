@@ -4,6 +4,7 @@ import {
   SelectQueryBuilder,
   Transaction,
 } from "kysely";
+import ClearGroupbyPlugin from "../plugin/clear-groupby-plugin.ts";
 
 type UnpackPromise<T> = T extends Promise<(infer U)> ? U : T;
 
@@ -49,7 +50,8 @@ export default async function executePagination<DB, TB extends keyof DB, O>(
   pagination: { currentPage: number; perPage: number },
   options?: {
     _default?: { currentPage: number; perPage: number };
-    db?: Kysely<DB> | Transaction<DB>;
+    // deno-lint-ignore no-explicit-any
+    db?: Kysely<any> | Transaction<any>;
   },
 ): Promise<
   { data: UnpackPromise<ReturnType<(typeof sqb)["execute"]>>; total: number }
@@ -86,7 +88,8 @@ export default async function executePagination<DB, TB extends keyof DB, O>(
   options?: {
     _default?: { currentPage: number; perPage: number };
     distinctKey?: ReferenceExpression<DB, TB>;
-    db?: Kysely<DB> | Transaction<DB>;
+    // deno-lint-ignore no-explicit-any
+    db?: Kysely<any> | Transaction<any>;
   },
 ): Promise<
   { data: UnpackPromise<ReturnType<(typeof sqb)["execute"]>>; total: number }
@@ -118,10 +121,10 @@ export default async function executePagination<DB, TB extends keyof DB, O>(
     return sqb.clearSelect().clearOrderBy().select((
       eb,
     ) => [
-      (!options?.distinctKey
-        ? eb.fn.countAll()
-        : eb.fn.count(options?.distinctKey).distinct()).as("count"),
-    ]);
+      (options?.distinctKey
+        ? eb.fn.count(options?.distinctKey).distinct()
+        : eb.fn.countAll()).as("count"),
+    ]).withPlugin(new ClearGroupbyPlugin());
   })();
   const total = await countQuery.executeTakeFirst();
   if (total && "count" in total) {

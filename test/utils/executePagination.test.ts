@@ -154,12 +154,12 @@ Deno.test("executePagination", async () => {
     assertEquals(res.total, 5);
   })();
 
-  // first page(order by)
+  // first page(order by+group by)
   await (async () => {
     const res = await executePagination(
       db.selectFrom("pet").select("name").where("owner_id", "=", 1).orderBy(
         "id",
-      ),
+      ).groupBy("id"),
       { currentPage: 1, perPage: 3 },
     );
     assertEquals(res.data.length, 3);
@@ -212,6 +212,17 @@ Deno.test("executePagination", async () => {
   await (async () => {
     const res = await executePagination(
       db.selectFrom("pet").select("name").where("owner_id", "=", 1),
+      { currentPage: 1, perPage: 3 },
+      { db },
+    );
+    assertEquals(res.data.length, 3);
+    assertEquals(res.total, 5);
+  })();
+
+  // sub query with alias
+  await (async () => {
+    const res = await executePagination(
+      db.selectFrom("pet as p").select("name").where("p.owner_id", "=", 1),
       { currentPage: 1, perPage: 3 },
       { db },
     );

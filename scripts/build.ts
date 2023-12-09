@@ -2,17 +2,20 @@
 let command = new Deno.Command("git", { args: ["stash", "-u"] });
 await command.output();
 
-// update "import" of index.ts
-const filePath = "./src/index.ts";
-const decorder = new TextDecoder("utf-8");
-const content = decorder.decode(await Deno.readFile(filePath));
-const encoder = new TextEncoder();
-const data = encoder.encode(
-  content.split("\n").map((line) =>
-    line.replace(/from "([^"]*)\.ts"/, `from "$1.js"`)
-  ).join("\n"),
-);
-await Deno.writeFile(filePath, data);
+// update "import" to transplie
+async function updateImport(filePath: string) {
+  const decorder = new TextDecoder("utf-8");
+  const content = decorder.decode(await Deno.readFile(filePath));
+  const encoder = new TextEncoder();
+  const data = encoder.encode(
+    content.split("\n").map((line) =>
+      line.replace(/from "([^"]*)\.ts"/, `from "$1.js"`)
+    ).join("\n"),
+  );
+  await Deno.writeFile(filePath, data);
+}
+await updateImport("./src/index.ts");
+await updateImport("./src/utils/executePagination.ts");
 
 // transpile to javascript
 await Deno.remove("./dist", { recursive: true });
