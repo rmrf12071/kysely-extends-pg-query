@@ -1,6 +1,7 @@
 import { ColumnType, Generated, Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
 import executePagination, {
+  executeTotal,
   validatePagination,
 } from "../../src/utils/executePagination.ts";
 import { assertEquals } from "https://deno.land/std@0.201.0/assert/assert_equals.ts";
@@ -123,6 +124,16 @@ Deno.test("executePagination", async () => {
   const v4 = validatePagination({ currentPage: 2, perPage: 20 });
   assertEquals(v4.currentPage, 2);
   assertEquals(v4.perPage, 20);
+
+  // first page(limit/offset)
+  await (async () => {
+    const res = await executeTotal(
+      db.selectFrom("pet").select("name").where("owner_id", "=", 1),
+      { offset: 0, limit: 3 },
+    );
+    assertEquals(res.data.length, 3);
+    assertEquals(res.total, 5);
+  })();
 
   // currentPage=0(out of range) -> currentPage=1
   await (async () => {
