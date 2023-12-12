@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.1.7
+
+### Notable changes
+
+- doc: add "executeTotal"
+
 ## 0.1.6
 
 ### Notable changes

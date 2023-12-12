@@ -1,6 +1,6 @@
 {
   "name": "kysely-extends-pg-query",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "kysely plugin for PostgreSQL",
   "main": "dist/index.js",
   "scripts": {
