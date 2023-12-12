@@ -21,7 +21,7 @@ npm install kysely-extends-pg-query
 "import via npm" is not supported. Please import by url as follows:
 
 ```ts
-import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.1.5/src/index.ts";
+import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.1.7/src/index.ts";
 ```
 
 ## Usage Example
@@ -69,5 +69,12 @@ const { data, total } = await executePagination(
   db.selectFrom("pet").select("name"),
   { currentPage: 1, perPage: 10 },
   { db }
+);
+
+// select "name" from "pet" limit 10 offset 0
+// select count(*) as "count" from "pet"
+const { data, total } = await executeTotal(
+  db.selectFrom("pet").select("name"),
+  { offset: 0, limit: 10 }
 );
 ```

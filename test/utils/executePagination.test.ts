@@ -1,9 +1,10 @@
 import { ColumnType, Generated, Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
-import executePagination, {
+import {
+  executePagination,
   executeTotal,
   validatePagination,
-} from "../../src/utils/executePagination.ts";
+} from "../../src/index.ts";
 import { assertEquals } from "https://deno.land/std@0.201.0/assert/assert_equals.ts";
 
 interface SystemDatabase {
