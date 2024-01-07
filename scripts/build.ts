@@ -14,6 +14,9 @@ async function updateImport(filePath: string) {
   );
   await Deno.writeFile(filePath, data);
 }
+await updateImport("./bin/node.ts");
+await updateImport("./bin/node/migrate.ts");
+await updateImport("./bin/node/parseConfig.ts");
 await updateImport("./src/index.ts");
 await updateImport("./src/utils/executePagination.ts");
 
