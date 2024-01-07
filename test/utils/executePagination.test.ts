@@ -1,17 +1,15 @@
-import { ColumnType, Generated, Kysely, PostgresDialect, sql } from "kysely";
+import { ColumnType, Generated, Kysely, PostgresDialect } from "kysely";
 import PgPool from "pg-pool";
 import {
+  createPgDatabase,
+  createPgRole,
   executePagination,
   executeTotal,
+  makePgSystemKysely,
   validatePagination,
 } from "../../src/index.ts";
 import { assertEquals } from "https://deno.land/std@0.201.0/assert/assert_equals.ts";
 
-interface SystemDatabase {
-  pg_database: {
-    datname: string;
-  };
-}
 // from getting started of kysely
 export interface Database {
   person: {
@@ -31,13 +29,11 @@ export interface Database {
 
 const DB_NAME = "kysely_pg_query_plugin_test";
 const DB_USER = "kysely_pqp";
-const postgres = new Kysely<SystemDatabase>({
-  dialect: new PostgresDialect({
-    pool: new PgPool({
-      host: "127.0.0.1",
-      user: "postgres",
-      idleTimeoutMillis: 0,
-    }),
+const postgres = makePgSystemKysely({
+  pool: new PgPool({
+    host: "127.0.0.1",
+    user: "postgres",
+    idleTimeoutMillis: 0,
   }),
 });
 const db = new Kysely<Database>({
@@ -64,10 +60,10 @@ Deno.test("executePagination", async () => {
 
   if (!targetDB) {
     // create database
-    await sql.raw(`create role ${DB_USER} login`).execute(postgres);
-    await sql.raw(`create database ${DB_NAME} owner ${DB_USER}`).execute(
-      postgres,
-    );
+    try {
+      await createPgRole(postgres, DB_USER);
+    } catch (_) { /* noop */ }
+    await createPgDatabase(postgres, DB_NAME, DB_USER);
     await db.schema.createTable("person").addColumn(
       "id",
       "serial",
