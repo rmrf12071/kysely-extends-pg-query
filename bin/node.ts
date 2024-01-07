@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import * as path from "node:path";
-import PgPool from "pg-pool";
 import { promises as fsPromises } from "node:fs";
+import { register } from "esbuild-register/dist/node";
 import {
   FileMigrationProvider,
   Kysely,
   Migrator,
   PostgresDialect,
 } from "kysely";
+import PgPool from "pg-pool";
 import {
   createPgDatabase,
   createPgRole,
@@ -44,7 +45,7 @@ async function main() {
   }
 
   // check and parse config file
-  const config = await parseConfig(args);
+  const config = parseConfig(args);
 
   // execute command
   switch (args.mode) {
@@ -78,16 +79,17 @@ function getPath(parts: string) {
     : `${process.cwd().replace(/\\/g, "/")}/${parts}`;
 }
 
-async function parseConfig(
+function parseConfig(
   args: { config?: string; mode?: string },
 ) {
   if (!args.config) {
     usage();
   }
 
-  const configPath = `file://${getPath(args.config)}`;
+  const configPath = getPath(args.config);
+  register({ sourcefile: configPath });
   try {
-    const { "default": content } = await import(configPath);
+    const { default: content } = require(configPath);
     if (typeof content != "object" || !content) {
       throw new Error("invalid config format");
     }
@@ -179,12 +181,20 @@ async function migrate(config: UtilConfig, mode: "latest" | "down") {
     }),
   });
 
+  const migrationFolder = getPath(config.migrate);
+
+  // prepare to read migration files written by typescript
+  const dirFiles = await fsPromises.readdir(migrationFolder);
+  for (const file of dirFiles) {
+    register({ sourcefile: path.join(migrationFolder, file) });
+  }
+
   const migrator = new Migrator({
     db,
     provider: new FileMigrationProvider({
       fs: fsPromises,
       path,
-      migrationFolder: getPath(config.migrate),
+      migrationFolder,
     }),
   });
 
