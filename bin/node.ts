@@ -21,7 +21,7 @@ async function main() {
   }
 
   // check and parse config file
-  const config = await parseConfig(args);
+  const config = parseConfig(args);
 
   switch (args.mode) {
     case MODE_MIGRATE_INIT:
