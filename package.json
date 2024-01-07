@@ -9,6 +9,9 @@
     "test:simple": "deno test --allow-net",
     "pre-publish": "npm run test:simple && npm run build && npm publish --dry-run"
   },
+  "bin": {
+    "kysely-extends-pg-query": "dist/bin/node.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rmrf12071/kysely-extends-pg-query.git"
@@ -20,6 +23,8 @@
   },
   "homepage": "https://github.com/rmrf12071/kysely-extends-pg-query#readme",
   "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/pg-pool": "^2.0.6",
     "kysely": "^0.26.3",
     "pg-pool": "^3.6.1",
     "typescript": "^5.2.2"
