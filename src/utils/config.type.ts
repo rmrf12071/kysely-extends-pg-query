@@ -12,6 +12,8 @@ export type UtilConfig = {
     /** password of user/role */
     password: string;
   };
+  /** dir of migrate files */
+  migrate: string;
   /** superuser for system database */
   superUser?: {
     /** superuser name */

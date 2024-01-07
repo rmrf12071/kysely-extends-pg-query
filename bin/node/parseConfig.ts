@@ -15,7 +15,7 @@ export default function parseConfig(
     if (typeof content != "object" || !content) {
       throw new Error("invalid config format");
     }
-    if (typeof content.database != "string") {
+    if (!content.database || typeof content.database != "string") {
       throw new Error("invalid config format: database");
     }
     if (content.host && typeof content.host != "string") {
@@ -27,23 +27,36 @@ export default function parseConfig(
     if (typeof content.owner != "object") {
       throw new Error("invalid config format: owner");
     }
-    if (typeof content.owner.user != "string") {
+    if (!content.owner.user || typeof content.owner.user != "string") {
       throw new Error("invalid config format: owner.user");
     }
-    if (typeof content.owner.password != "string") {
+    if (
+      !content.owner.password || typeof content.owner.password != "string"
+    ) {
       throw new Error("invalid config format: owner.password");
+    }
+    if (!content.migrate || typeof content.migrate !== "string") {
+      throw new Error("invalid config format: migrate");
     }
     if (content.superUser) {
       if (typeof content.superUser != "object") {
         throw new Error("invalid config format: superUser");
       }
-      if (typeof content.superUser.user != "string") {
+      if (
+        !content.superUser.user || typeof content.superUser.user != "string"
+      ) {
         throw new Error("invalid config format: superUser.user");
       }
-      if (typeof content.superUser.password != "string") {
+      if (
+        !content.superUser.password ||
+        typeof content.superUser.password != "string"
+      ) {
         throw new Error("invalid config format: superUser.password");
       }
-      if (typeof content.superUser.database != "string") {
+      if (
+        !content.superUser.database ||
+        typeof content.superUser.database != "string"
+      ) {
         throw new Error("invalid config format: superUser.database");
       }
     } else if (args.mode == MODE_MIGRATE_INIT) {

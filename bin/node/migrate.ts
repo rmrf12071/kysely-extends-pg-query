@@ -1,4 +1,13 @@
-import { Kysely, LogConfig, PostgresDialect } from "kysely";
+import { promises as fsPromises } from "node:fs";
+import * as path from "node:path";
+import process from "node:process";
+import {
+  FileMigrationProvider,
+  Kysely,
+  LogConfig,
+  Migrator,
+  PostgresDialect,
+} from "kysely";
 import PgPool from "pg-pool";
 import {
   createPgDatabase,
@@ -6,6 +15,7 @@ import {
   SystemDatabase,
   UtilConfig,
 } from "../../src/index.ts";
+import { getPath } from "./utils.ts";
 
 const outputLog: LogConfig = (event) => {
   const content = `sql: [${event.query.sql}] parameters: [${
@@ -47,5 +57,58 @@ export async function migrateInit(config: UtilConfig) {
   } catch (err) {
     console.warn(err);
   }
+  await db.destroy();
+}
+
+export async function migrate(config: UtilConfig, mode: "latest" | "down") {
+  // deno-lint-ignore no-explicit-any
+  const db = new Kysely<any>({
+    dialect: new PostgresDialect({
+      pool: new PgPool({
+        host: config.host ?? "localhost",
+        port: config.port ?? 5432,
+        database: config.database,
+        user: config.owner.user,
+        password: config.owner.password,
+      }),
+    }),
+    log: !config.verbose ? undefined : outputLog,
+  });
+
+  const migrator = new Migrator({
+    db,
+    provider: new FileMigrationProvider({
+      fs: fsPromises,
+      path,
+      migrationFolder: getPath(config.migrate),
+    }),
+  });
+
+  const { error, results } = mode == "latest"
+    ? await migrator.migrateToLatest()
+    : await migrator.migrateDown();
+
+  console.log("");
+  results?.forEach((it) => {
+    if (it.status === "Success") {
+      console.log(
+        `\u001b[36mmigration "${it.migrationName}" was executed successfully\u001b[0m`,
+      );
+    } else if (it.status === "Error") {
+      console.error(
+        `\u001b[35mfailed to execute migration "${it.migrationName}"\u001b[0m`,
+      );
+    }
+  });
+  if (results?.length == 0) {
+    console.log("\u001b[36malready latest\u001b[0m");
+  }
+
+  if (error) {
+    console.error("\u001b[35mfailed to migrate\u001b[0m");
+    console.error(error);
+    process.exit(1);
+  }
+
   await db.destroy();
 }
