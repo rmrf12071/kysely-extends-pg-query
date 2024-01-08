@@ -10,6 +10,7 @@ import {
 } from "./utils/schema/system.ts";
 export type { Pagination } from "./utils/executePagination.ts";
 export type { UtilConfig } from "./utils/config.type.ts";
+export * as generator from "./utils/schema/generator.ts";
 export type { SystemDatabase } from "./utils/schema/system.ts";
 
 export {
