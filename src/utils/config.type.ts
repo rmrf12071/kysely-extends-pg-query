@@ -12,6 +12,12 @@ export type UtilConfig = {
     /** password of user/role */
     password: string;
   };
+  generate: {
+    /** dir of definition files for generation */
+    dir: string;
+    /** string quotation, default: `"` */
+    quote?: '"' | "'";
+  };
   /** dir of migrate files */
   migrate: string;
   /** superuser for system database */

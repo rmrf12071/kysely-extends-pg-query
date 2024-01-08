@@ -9,6 +9,11 @@ This plugin is developed with `Deno`, and also works `Node.js`(CommonJS).
   - To avoid SQL error on `pg-pool` when we use `Array` value to insert/update any column
 - Auto updates for specified column(s)
 - Utility function for pagination
+- Generation Utilities(For Node.js)
+  - generete the migration file
+- Migration Utilities(For Node.js)
+  - `Create Role` and `Create Database`
+  - `Migrate To Latest` and `Migrate Down`
 
 ## Installation for Node.js
 
@@ -77,4 +82,95 @@ const { data, total } = await executeTotal(
   db.selectFrom("pet").select("name"),
   { offset: 0, limit: 10 }
 );
+```
+
+## Generation and Migration (for Node.js)
+
+create config file like following:
+
+```ts
+import type { UtilConfig } from "kysely-extends-pg-query";
+
+const config: UtilConfig = {
+  database: 'test01',
+  owner: {
+    user: 'test_01',
+    password: 'pwd',
+  },
+  generate: {
+    dir: 'db_schema_definition',
+    quote: "'",
+  };
+  migrate: 'migrate', // folder path of migration files
+  superUser: {
+    user: 'postgres',
+    password: 'postgres',
+    database: 'postgres',
+  },
+};
+
+export default config;
+```
+
+add command to run-scripts(package.json)
+
+```json
+  "scripts": {
+    "migrate:gen": "kysely-extends-pg-query --mode migrate-gen --config config.ts",
+    "migrate:init": "kysely-extends-pg-query --mode migrate-init --config config.ts",
+    "migrate:latest": "kysely-extends-pg-query --mode migrate-latest --config config.ts",
+    "migrate:down": "kysely-extends-pg-query --mode migrate-down --config config.ts"
+  },
+```
+
+### Generation
+
+Add definition file to `generate` folder.
+
+```ts
+import { generator } from "kysely-extends-pg-query";
+
+const table = generator.makeTableDefinition({
+  name: "table",
+  columns: [
+    { name: "key", primary: true, type: "bigserial" },
+    { name: "string", notNull: false, type: "text" },
+    { name: "string2", notNull: false, type: "char", length: 1 },
+    { name: "big_int", notNull: false, type: "bigint" },
+    { name: "json", notNull: false, type: "json", structure: "{}[]" },
+    { name: "jsonb", notNull: false, type: "jsonb", structure: "{}[]" },
+    { name: "ts", notNull: false, type: "timestamp", withTZ: false },
+  ],
+});
+
+const def: generator.generateExportType = {
+  tables: [table],
+};
+
+export default def;
+```
+
+Full example exists `/test/utils/schema/generator.test.ts`.
+
+To execute command, generate `_generated.ts` in `config.migrate.dir`.
+
+```bash
+npm run migrate:gen
+```
+
+### Migration
+
+- Create Role and Create Database
+
+```bash
+npm run migrate:init
+```
+
+- Execute Migration
+
+```bash
+# migrate to latest
+npm run migrage:latest
+# migrate down(rollback)
+npm run migrate:down
 ```

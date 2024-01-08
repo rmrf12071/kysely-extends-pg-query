@@ -13,14 +13,17 @@ import PgPool from "pg-pool";
 import {
   createPgDatabase,
   createPgRole,
+  generator,
   SystemDatabase,
   UtilConfig,
 } from "../src/index.ts";
 
+const MODE_MIGRATE_GEN = "migrate-gen";
 const MODE_MIGRATE_INIT = "migrate-init";
 const MODE_MIGRATE_LATEST = "migrate-latest";
 const MODE_MIGRATE_DOWN = "migrate-down";
 const MODE = [
+  MODE_MIGRATE_GEN,
   MODE_MIGRATE_INIT,
   MODE_MIGRATE_LATEST,
   MODE_MIGRATE_DOWN,
@@ -49,6 +52,9 @@ async function main() {
 
   // execute command
   switch (args.mode) {
+    case MODE_MIGRATE_GEN:
+      await migrateGen(config);
+      break;
     case MODE_MIGRATE_INIT:
       await migrateInit(config);
       break;
@@ -113,6 +119,15 @@ function parseConfig(
     ) {
       throw new Error("invalid config format: owner.password");
     }
+    if (typeof content.generate !== "object") {
+      throw new Error("invalid config format: generate");
+    }
+    if (!content.generate.dir || typeof content.generate.dir !== "string") {
+      throw new Error("invalid config format: generate.dir");
+    }
+    if (![undefined, '"', "'"].includes(content.generate.quote)) {
+      throw new Error("invalid config format: generate.quote");
+    }
     if (!content.migrate || typeof content.migrate !== "string") {
       throw new Error("invalid config format: migrate");
     }
@@ -146,6 +161,35 @@ function parseConfig(
     process.exit(1);
     throw new Error(); // for deno language server
   }
+}
+
+async function migrateGen(config: UtilConfig) {
+  const info: generator.generateExportType = {
+    enums: [],
+    tables: [],
+    foreignKeys: [],
+  };
+
+  const generateFolder = getPath(config.generate.dir);
+  const dirFiles = await fsPromises.readdir(generateFolder);
+  for (const file of dirFiles) {
+    const filePath = path.join(generateFolder, file);
+    register({ sourcefile: filePath });
+    const content = require(filePath);
+    const defs = content.default as generator.generateExportType;
+    if (defs.enums) info.enums?.push(...defs.enums);
+    if (defs.tables) info.tables?.push(...defs.tables);
+    if (defs.foreignKeys) info.foreignKeys?.push(...defs.foreignKeys);
+  }
+
+  const res = generator.generateMigrate({
+    ...info,
+    quote: config.generate.quote,
+  });
+  await fsPromises.writeFile(
+    path.join(getPath(config.migrate), "_generated.ts"),
+    res,
+  );
 }
 
 async function migrateInit(config: UtilConfig) {
