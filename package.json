@@ -20,11 +20,11 @@
   },
   "homepage": "https://github.com/rmrf12071/kysely-extends-pg-query#readme",
   "devDependencies": {
-    "kysely": "^0.26.3",
-    "pg-pool": "^3.6.1",
-    "typescript": "^5.2.2"
+    "kysely": "^0.27.3",
+    "pg-pool": "^3.6.2",
+    "typescript": "^5.4.5"
   },
   "peerDependencies": {
-    "kysely": "^0.26.3"
+    "kysely": "^0.27.3"
   }
 }

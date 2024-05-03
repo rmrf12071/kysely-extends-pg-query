@@ -1,8 +1,10 @@
 import {
   AliasNode,
   AnyColumnWithTable,
+  ColumnNode,
   InsertQueryNode,
   KyselyPlugin,
+  OperationNode,
   OperationNodeTransformer,
   PluginTransformQueryArgs,
   PluginTransformResultArgs,
@@ -135,7 +137,8 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       return super.transformInsertQuery(node);
     }
     // if the table is not target, call super and return
-    const table = node.into.table.identifier.name;
+    const table = node.into?.table.identifier.name;
+    if (!table) return super.transformInsertQuery(node);
     const jsonTargets = this.#jsonColumns.get(table);
     const autoUpdates = this.#autoUpdates.get(table);
     if (!table || (!jsonTargets && !autoUpdates)) {
@@ -202,10 +205,12 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       const updates = [];
       if (rawOnConflict.updates) {
         for (const item of rawOnConflict.updates) {
-          autoUpdateTargets.delete(item.column.column.name);
+          if (item.column.kind != 'ColumnNode') continue;
+          const name = (item.column as ColumnNode).column.name;
+          autoUpdateTargets.delete(name);
 
           if (
-            !jsonTargets?.has(item.column.column.name) ||
+            !jsonTargets?.has(name) ||
             item.value.kind != "ValueNode"
           ) {
             updates.push(item);
@@ -261,10 +266,10 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
     // get target table
     const table = (() => {
       let tableNode = node.table;
-      if (tableNode.kind == "AliasNode") {
+      if (tableNode?.kind == "AliasNode") {
         tableNode = (tableNode as AliasNode).node;
       }
-      if (tableNode.kind == "TableNode") {
+      if (tableNode?.kind == "TableNode") {
         return (tableNode as TableNode).table.identifier.name;
       }
     })();
@@ -281,8 +286,8 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
 
     // update `node.updates`: JSON.stringify
     const targets = this.#jsonColumns.get(table);
-    const updates = node.updates.map((update) => {
-      const columnName = update.column.column.name;
+    const updates = node.updates.filter(update => update.column.kind == 'ColumnNode').map((update) => {
+      const columnName = (update.column as ColumnNode).column.name;
 
       // if specified, remove from auto update
       autoUpdateTargets.delete(columnName);
@@ -312,7 +317,7 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
         column: {
           kind: "ColumnNode",
           column: { kind: "IdentifierNode", name: column },
-        },
+        } as OperationNode,
         value: {
           kind: "RawNode",
           sqlFragments: [value],
