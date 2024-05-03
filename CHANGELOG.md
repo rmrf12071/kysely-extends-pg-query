@@ -1,5 +1,12 @@
 # kysely-extends-pg-query changelog
 
+## 0.2.0
+
+### Notable changes
+
+- deps: update kysely to 0.27.3
+- feat: add command to migrate for node.js
+
 ## 0.1.7
 
 ### Notable changes

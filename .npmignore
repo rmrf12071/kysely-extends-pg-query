@@ -1,9 +1,10 @@
 .vscode
 node_modules/
 cov_profile/
-scripts/
-src/
-test/
+/scripts/
+/bin/
+/src/
+/test/
 .editorconfig
 .gitignore
 CHANGELOG.md

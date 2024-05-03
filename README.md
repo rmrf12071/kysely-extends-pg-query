@@ -9,6 +9,7 @@ This plugin is developed with `Deno`, and also works `Node.js`(CommonJS).
   - To avoid SQL error on `pg-pool` when we use `Array` value to insert/update any column
 - Auto updates for specified column(s)
 - Utility function for pagination
+- Commands for Node.js: migration
 
 ## Installation for Node.js
 
@@ -21,7 +22,7 @@ npm install kysely-extends-pg-query
 "import via npm" is not supported. Please import by url as follows:
 
 ```ts
-import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.1.7/src/index.ts";
+import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.2.0/src/index.ts";
 ```
 
 ## Usage Example
@@ -78,3 +79,44 @@ const { data, total } = await executeTotal(
   { offset: 0, limit: 10 }
 );
 ```
+
+### Node.js: Migration
+
+config.ts
+
+```ts
+import type { UtilConfig } from 'kysely-extends-pg-query';
+
+const config: UtilConfig = {
+  database: 'test01',
+  owner: {
+    user: 'test_01',
+    password: 'pwd',
+  },
+  generate: {
+    dir: 'defs',
+    quote: '\'',
+  },
+  migrate: 'migrate',
+  superUser: {
+    user: 'postgres',
+    password: 'postgres',
+    database: 'postgres',
+  },
+  verbose: true,
+};
+
+export default config;
+```
+
+package.json
+
+```json
+  "scripts": {
+    "migrate:init": "kysely-extends-pg-query --mode migrate-init --config config.ts",
+    "migrate:latest": "kysely-extends-pg-query --mode migrate-latest --config config.ts",
+    "migrate:down": "kysely-extends-pg-query --mode migrate-down --config config.ts"
+  },
+```
+
+Then, you can use `npm run migrate:init` and more.

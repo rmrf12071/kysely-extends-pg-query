@@ -31,6 +31,13 @@ console.log(code == 0 ? "success to transpile!" : "failed to transpile!!\n");
 console.log(new TextDecoder().decode(stdout));
 console.log(new TextDecoder().decode(stderr));
 
+// remove type files from bin
+await Deno.remove("./dist/bin/node.d.ts");
+for await (const entry of Deno.readDir("./dist/bin/node")) {
+  if (!entry.name.endsWith("d.ts")) continue;
+  await Deno.remove(`./dist/bin/node/${entry.name}`);
+}
+
 // pop stash
 command = new Deno.Command("git", { args: ["checkout", "."] });
 await command.output();
