@@ -1,3 +1,5 @@
+import { createPgDatabase } from "./schema/system.ts";
+
 export type UtilConfig = {
   /** target database name */
   database: string;
@@ -25,4 +27,6 @@ export type UtilConfig = {
   };
   /** detailed logs output */
   verbose?: boolean;
+  /** options for create database */
+  createDbOptions?: Parameters<typeof createPgDatabase>[2];
 };

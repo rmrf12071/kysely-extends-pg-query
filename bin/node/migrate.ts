@@ -53,7 +53,10 @@ export async function migrateInit(config: UtilConfig) {
     console.warn(err);
   }
   try {
-    await createPgDatabase(db, config.database, config.owner.user);
+    await createPgDatabase(db, config.database, {
+      owner: config.owner.user,
+      ...config.createDbOptions,
+    });
   } catch (err) {
     console.warn(err);
   }
