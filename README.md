@@ -93,10 +93,6 @@ const config: UtilConfig = {
     user: 'test_01',
     password: 'pwd',
   },
-  generate: {
-    dir: 'defs',
-    quote: '\'',
-  },
   migrate: 'migrate',
   superUser: {
     user: 'postgres',

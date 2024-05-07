@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.2.1
+
+### Notable changes
+
+- bugfix: fix entrypoint for node.js
+
 ## 0.2.0
 
 ### Notable changes
