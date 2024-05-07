@@ -63,7 +63,7 @@ Deno.test("executePagination", async () => {
     try {
       await createPgRole(postgres, DB_USER);
     } catch (_) { /* noop */ }
-    await createPgDatabase(postgres, DB_NAME, DB_USER);
+    await createPgDatabase(postgres, DB_NAME, { owner: DB_USER });
     await db.schema.createTable("person").addColumn(
       "id",
       "serial",

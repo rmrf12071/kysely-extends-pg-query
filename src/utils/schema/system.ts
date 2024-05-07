@@ -14,6 +14,7 @@ export interface SystemDatabase {
 export function makePgSystemKysely(config: PostgresDialectConfig) {
   return new Kysely<SystemDatabase>({
     dialect: new PostgresDialect(config),
+    log: ["query", "error"],
   });
 }
 
@@ -37,12 +38,36 @@ export function createPgRole(
   ).execute(db);
 }
 
+/**
+ * create database of PostgreSQL
+ * @param db instance of kysely
+ * @param database database name
+ * @param options options
+ * @returns result
+ */
 export function createPgDatabase(
   // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   database: string,
-  role?: string,
+  options?: {
+    owner?: string;
+    template?: string;
+    encoding?: string;
+    locale?: string;
+    lc_collate?: string;
+    lc_ctype?: string;
+    tablespace?: string;
+    allow_connections?: boolean;
+    connection_limit?: number;
+    is_template?: boolean;
+  },
 ) {
-  return sql.raw(`create database ${database}${role ? ` owner ${role}` : ""}`)
+  const opts: string[] = [];
+  for (const key of Object.keys(options ?? {})) {
+    opts.push(`${key} ${options?.[key as keyof typeof options]?.toString()}`);
+  }
+  return sql.raw(
+    `create database ${database}${opts.length > 0 ? ` ${opts.join(" ")}` : ""}`,
+  )
     .execute(db);
 }
