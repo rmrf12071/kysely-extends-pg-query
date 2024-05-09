@@ -4,8 +4,12 @@ import {
   commentOn,
   createPgDatabase,
   createPgRole,
+  createPolicy,
+  dropPolicy,
+  grantDBObj,
   makePgSystemKysely,
   SystemDatabase,
+  updateRowLevelSecurity,
 } from "../../../src/index.ts";
 import { assertEquals } from "https://deno.land/std@0.201.0/assert/assert_equals.ts";
 
@@ -139,6 +143,29 @@ Deno.test("system", async () => {
   await commentOn(db, "column", "person.id", null);
   comments = await getComments();
   assertEquals(comments, []);
+
+  // grant
+  await grantDBObj(
+    db,
+    "table",
+    "select",
+    { all: true, schema: "public" },
+    DB_USER,
+  );
+  await grantDBObj(
+    db,
+    "sequence",
+    "usage",
+    { all: true, schema: "public" },
+    DB_USER,
+  );
+
+  // RLS
+  await updateRowLevelSecurity(db, "person", "enable");
+  await updateRowLevelSecurity(db, "person", "disable");
+  await createPolicy(db, "person", { using: "true" });
+  await dropPolicy(db, "person");
+
   await postgres.destroy();
   await db.destroy();
 });
