@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.2.2
+
+### Notable changes
+
+- feat: add utilily functions for manage schema
+
 ## 0.2.1
 
 ### Notable changes

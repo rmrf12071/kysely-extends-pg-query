@@ -22,7 +22,7 @@ npm install kysely-extends-pg-query
 "import via npm" is not supported. Please import by url as follows:
 
 ```ts
-import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.2.0/src/index.ts";
+import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.2.2/src/index.ts";
 ```
 
 ## Usage Example
@@ -116,3 +116,16 @@ package.json
 ```
 
 Then, you can use `npm run migrate:init` and more.
+
+<details>
+  <summary>Other features</summary>
+
+  ```ts
+    await commentOn(db, "table", "person", "test comment for table");
+    await commentOn(db, "table", "person", null);
+    await grantDBObj(db, "table", "select", { all: true, schema: "public" }, "target_role_name");
+    await updateRowLevelSecurity(db, "person", "enable");
+    await createPolicy(db, "person", { using: "true" });
+    await dropPolicy(db, "person");
+  ```
+</details>
