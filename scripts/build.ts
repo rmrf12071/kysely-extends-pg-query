@@ -22,7 +22,9 @@ await updateImport("./src/utils/config.type.ts");
 await updateImport("./src/utils/executePagination.ts");
 
 // transpile to javascript
-await Deno.remove("./dist", { recursive: true });
+try {
+  await Deno.remove("./dist", { recursive: true });
+} catch (_) { /* noop */ }
 const tsc = Deno.build.os == "windows"
   ? ".\\node_modules\\.bin\\tsc.cmd"
   : "./node_modules/.bin/tsc";
@@ -33,11 +35,13 @@ console.log(new TextDecoder().decode(stdout));
 console.log(new TextDecoder().decode(stderr));
 
 // remove type files from bin
-await Deno.remove("./dist/bin/node.d.ts");
-for await (const entry of Deno.readDir("./dist/bin/node")) {
-  if (!entry.name.endsWith("d.ts")) continue;
-  await Deno.remove(`./dist/bin/node/${entry.name}`);
-}
+try {
+  await Deno.remove("./dist/bin/node.d.ts");
+  for await (const entry of Deno.readDir("./dist/bin/node")) {
+    if (!entry.name.endsWith("d.ts")) continue;
+    await Deno.remove(`./dist/bin/node/${entry.name}`);
+  }
+} catch (_) { /* noop */ }
 
 // pop stash
 command = new Deno.Command("git", { args: ["checkout", "."] });
