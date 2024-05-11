@@ -2,13 +2,16 @@ import { promises as fsPromises } from "node:fs";
 import * as path from "node:path";
 import process from "node:process";
 import {
-  FileMigrationProvider,
+  FileMigrationProviderProps,
   Kysely,
   LogConfig,
+  Migration,
+  MigrationProvider,
   Migrator,
   PostgresDialect,
 } from "kysely";
 import PgPool from "pg-pool";
+import { register } from "esbuild-register/dist/node";
 import {
   createPgDatabase,
   createPgRole,
@@ -33,6 +36,61 @@ const outputLog: LogConfig = (event) => {
     console.log("\u001b[31mkysely:error\u001b[0m " + content);
   }
 };
+
+interface RecursiveFileMigrationProviderProps
+  extends FileMigrationProviderProps {
+  fs: typeof fsPromises;
+}
+
+/** FileMigrationProvider(collect recursively) */
+class RecursiveFileMigrationProvider implements MigrationProvider {
+  #props: RecursiveFileMigrationProviderProps;
+  constructor(props: RecursiveFileMigrationProviderProps) {
+    this.#props = props;
+  }
+  async getMigrations(): Promise<Record<string, Migration>> {
+    const migrations: Record<string, Migration> = {};
+    const files = await this.#props.fs.readdir(
+      this.#props.migrationFolder,
+      {
+        recursive: true,
+        withFileTypes: true,
+      },
+    );
+    for (const file of files) {
+      if (
+        file.isFile() &&
+        (file.name.endsWith(".js") ||
+          (file.name.endsWith(".ts") && !file.name.endsWith(".d.ts")) ||
+          file.name.endsWith(".mjs") ||
+          (file.name.endsWith(".mts") && !file.name.endsWith(".d.mts")))
+      ) {
+        const path = this.#props.path.join(
+          file.path,
+          file.name,
+        );
+        register({ sourcefile: path });
+        const migration = require(path); // cast for deno
+        const migrationKey = this.#props.path.join(
+          file.path.substring(this.#props.migrationFolder.length),
+          file.name,
+        )
+          .replace(/\.[^.]*$/, "");
+        // Handle esModuleInterop export's `default` prop...
+        if (isMigration(migration?.default)) {
+          migrations[migrationKey] = migration.default;
+        } else if (isMigration(migration)) {
+          migrations[migrationKey] = migration;
+        }
+      }
+    }
+    return migrations;
+  }
+}
+function isMigration(obj: unknown) {
+  return typeof obj === "object" && obj !== null &&
+    typeof (obj as Record<string, unknown>).up === "function";
+}
 
 export async function migrateInit(config: UtilConfig) {
   if (!config.superUser) throw new Error("invalid argument");
@@ -92,7 +150,7 @@ export async function migrate(
 
   const migrator = new Migrator({
     db,
-    provider: new FileMigrationProvider({
+    provider: new RecursiveFileMigrationProvider({
       fs: fsPromises,
       path,
       migrationFolder: getPath(config.migrate),
