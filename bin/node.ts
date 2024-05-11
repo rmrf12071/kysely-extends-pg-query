@@ -16,6 +16,7 @@ async function main() {
     options: {
       mode: { type: "string" },
       config: { type: "string" },
+      dry: { type: "boolean" },
     },
   });
   // check arguments and the mode
@@ -35,10 +36,10 @@ async function main() {
       await migrateInit(config);
       break;
     case MODE_MIGRATE_LATEST:
-      await migrate(config, "latest");
+      await migrate(config, "latest", args.dry);
       break;
     case MODE_MIGRATE_DOWN:
-      await migrate(config, "down");
+      await migrate(config, "down", args.dry);
       break;
     default:
       usage();

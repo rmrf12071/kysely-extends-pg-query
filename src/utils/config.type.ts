@@ -16,6 +16,8 @@ export type UtilConfig = {
   };
   /** dir of migrate files */
   migrate: string;
+  /** output file for dry migrate */
+  dryMigrateOutput?: string;
   /** superuser for system database */
   superUser?: {
     /** superuser name */

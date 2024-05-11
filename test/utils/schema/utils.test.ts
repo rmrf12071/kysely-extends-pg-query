@@ -6,6 +6,8 @@ import {
   createPgRole,
   createPolicy,
   dropPolicy,
+  DryMigrationPgPool,
+  DryMigrationQueries,
   grantDBObj,
   makePgSystemKysely,
   SystemDatabase,
@@ -48,6 +50,21 @@ const db = new Kysely<Database & SystemDatabase>({
       user: DB_OWNER,
       idleTimeoutMillis: 0,
     }),
+  }),
+  log: (event) => {
+    console.log(`${event.query.sql}, [${event.query.parameters}]`);
+  },
+});
+const dryRunQueries: DryMigrationQueries = [];
+// deno-lint-ignore no-explicit-any
+const dry = new Kysely<any>({
+  dialect: new PostgresDialect({
+    pool: new DryMigrationPgPool({
+      database: DB_NAME,
+      host: "127.0.0.1",
+      user: DB_OWNER,
+      idleTimeoutMillis: 0,
+    }, { queries: dryRunQueries }),
   }),
   log: (event) => {
     console.log(`${event.query.sql}, [${event.query.parameters}]`);
@@ -166,6 +183,27 @@ Deno.test("system", async () => {
   await createPolicy(db, "person", { using: "true" });
   await dropPolicy(db, "person");
 
+  // dry migrate
+  await dry.transaction().execute(async (trx) => {
+    await trx.schema.createTable("foo").addColumn(
+      "id",
+      "serial",
+      (col) => col.primaryKey().references("bar.id").onDelete("cascade"),
+    ).addColumn("content", "text", (col) => col.notNull())
+      .execute();
+    await trx.schema.createIndex("foo_index").on("foo").column("content")
+      .execute();
+  });
+  assertEquals(dryRunQueries, [{
+    sql:
+      `create table "foo" ("id" serial primary key references "bar" ("id") on delete cascade, "content" text not null)`,
+    parameters: [],
+  }, {
+    sql: `create index "foo_index" on "foo" ("content")`,
+    parameters: [],
+  }]);
+
   await postgres.destroy();
   await db.destroy();
+  await dry.destroy();
 });
