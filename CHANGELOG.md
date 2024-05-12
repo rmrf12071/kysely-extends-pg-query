@@ -1,5 +1,12 @@
 # kysely-extends-pg-query changelog
 
+## 0.2.3
+
+### Notable changes
+
+- feat: add dry migration
+- feat: migration by files recursively
+
 ## 0.2.2
 
 ### Notable changes
