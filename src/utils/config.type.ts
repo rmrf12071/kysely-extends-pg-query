@@ -1,4 +1,5 @@
 import { createPgDatabase } from "./schema/system.ts";
+import { ConnectionOptions } from "node:tls";
 
 export type UtilConfig = {
   /** target database name */
@@ -7,6 +8,8 @@ export type UtilConfig = {
   host?: string;
   /** port number, default: 5432 */
   port?: number;
+  /** SSL settings */
+  ssl?: boolean | ConnectionOptions | undefined;
   /** target database owner */
   owner: {
     /** database user(role) */
@@ -17,7 +20,7 @@ export type UtilConfig = {
   /** dir of migrate files */
   migrate: string;
   /** output file for dry migrate */
-  dryMigrateOutput?: string;
+  dryMigrateOutput?: string | undefined;
   /** superuser for system database */
   superUser?: {
     /** superuser name */
@@ -30,5 +33,5 @@ export type UtilConfig = {
   /** detailed logs output */
   verbose?: boolean;
   /** options for create database */
-  createDbOptions?: Parameters<typeof createPgDatabase>[2];
+  createDbOptions?: Parameters<typeof createPgDatabase>[2] | undefined;
 };

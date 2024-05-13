@@ -103,6 +103,7 @@ export async function migrateInit(config: UtilConfig) {
         database: config.superUser.database,
         user: config.superUser.user,
         password: config.superUser.password,
+        ssl: config.ssl,
       }),
     }),
     log: !config.verbose ? undefined : outputLog,
@@ -134,6 +135,7 @@ export async function migrate(
     database: config.database,
     user: config.owner.user,
     password: config.owner.password,
+    ssl: config.ssl,
   };
   const dryRunQueries: DryMigrationQueries = [];
   // deno-lint-ignore no-explicit-any
