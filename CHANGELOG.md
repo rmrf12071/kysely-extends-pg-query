@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.2.4
+
+- feat: add SSL support for migration
+
+### Notable changes
+
 ## 0.2.3
 
 ### Notable changes

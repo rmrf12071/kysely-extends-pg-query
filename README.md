@@ -22,7 +22,7 @@ npm install kysely-extends-pg-query
 "import via npm" is not supported. Please import by url as follows:
 
 ```ts
-import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.2.3/src/index.ts";
+import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.2.4/src/index.ts";
 ```
 
 ## Usage Example
@@ -89,8 +89,9 @@ import type { UtilConfig } from 'kysely-extends-pg-query';
 
 const config: UtilConfig = {
   database: 'test01',
-  host: undefined, // 'localhost'
-  port: undefined, // 5432
+  host: 'localhost',
+  port: 5432,
+  ssl: undefined,
   owner: {
     user: 'test_01',
     password: 'pwd',
