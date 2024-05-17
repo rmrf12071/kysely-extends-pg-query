@@ -1,4 +1,4 @@
-import { ColumnType, Generated, Kysely, PostgresDialect } from "kysely";
+import { ColumnType, Generated, Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
 import {
   commentOn,
@@ -88,6 +88,7 @@ Deno.test("system", async () => {
       await createPgRole(postgres, DB_USER);
     } catch (_) { /* noop */ }
     await createPgDatabase(postgres, DB_NAME, { owner: DB_OWNER });
+    await sql.raw("create schema if not exists test_schema").execute(db);
     await db.schema.createTable("person").addColumn(
       "id",
       "serial",
@@ -167,13 +168,20 @@ Deno.test("system", async () => {
     "table",
     "select",
     { all: true, schema: "public" },
+    [DB_USER, DB_OWNER],
+  );
+  await grantDBObj(
+    db,
+    "table",
+    "delete",
+    { all: false, name: "person" },
     DB_USER,
   );
   await grantDBObj(
     db,
     "sequence",
     "usage",
-    { all: true, schema: "public" },
+    { all: true, schema: ["public", "test_schema"] },
     DB_USER,
   );
 

@@ -25,6 +25,9 @@ export function commentOn(
   target: string,
   comment: string | null,
 ) {
+  target = type === "column"
+    ? `"${target.split(".").join('"."')}"`
+    : `${target}`;
   const query = `comment on ${type} ${target} is ${
     comment === null ? "null" : `'${comment.replace(/'/g, "''")}'`
   }`;
@@ -95,12 +98,12 @@ export function grantDBObj(
       : typeof dbObj.schema === "string"
       ? [dbObj.schema]
       : dbObj.schema;
-    if (dbObj.all === false) return `${type} ${names.join(", ")}`;
-    return `all ${type}s in schema ${names.join(", ")}`;
+    if (dbObj.all === false) return `${type} "${names.join('", "')}"`;
+    return `all ${type}s in schema "${names.join('", "')}"`;
   })();
-  const query = `grant ${grants.join(", ")} on ${on} to ${roles.join(", ")}${
-    withGrantOption ? " with grant option" : ""
-  }`;
+  const query = `grant ${grants.join(", ")} on ${on} to "${
+    roles.join('", "')
+  }"${withGrantOption ? " with grant option" : ""}`;
   return sql.raw(query).execute(db);
 }
 
@@ -117,7 +120,7 @@ export function updateRowLevelSecurity(
   table: string,
   mode: "disable" | "enable" | "force" | "no force",
 ) {
-  const query = `alter table ${table} ${mode} row level security`;
+  const query = `alter table "${table}" ${mode} row level security`;
   return sql.raw(query).execute(db);
 }
 
@@ -149,14 +152,16 @@ export function createPolicy(
   const to = !options?.to
     ? ""
     : ` to ${
-      typeof options.to === "string" ? options.to : options.to.join(", ")
+      typeof options.to === "string"
+        ? `"${options.to}"`
+        : `"${options.to.join('", "')}"`
     }`;
   const using = options?.using ? ` using(${options.using})` : "";
   const withCheck = options?.withCheck
     ? ` with check(${options.withCheck})`
     : "";
   const query =
-    `create policy ${name} on ${table}${operation}${to}${using}${withCheck}`;
+    `create policy "${name}" on "${table}"${operation}${to}${using}${withCheck}`;
   return sql.raw(query).execute(db);
 }
 
@@ -173,6 +178,6 @@ export function dropPolicy(
   table: string,
   name?: string,
 ) {
-  const query = `drop policy ${name ?? `${table}_policy`} on ${table}`;
+  const query = `drop policy "${name ?? `${table}_policy`}" on "${table}"`;
   return sql.raw(query).execute(db);
 }
