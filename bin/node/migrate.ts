@@ -70,7 +70,7 @@ class RecursiveFileMigrationProvider implements MigrationProvider {
           file.name,
         );
         register({ sourcefile: path });
-        const migration = require(path); // cast for deno
+        const migration = require(path);
         const migrationKey = this.#props.path.join(
           file.path.substring(this.#props.migrationFolder.length),
           file.name,
@@ -138,7 +138,6 @@ export async function migrate(
     ssl: config.ssl,
   };
   const dryRunQueries: DryMigrationQueries = [];
-  // deno-lint-ignore no-explicit-any
   const db = new Kysely<any>({
     dialect: new PostgresDialect({
       pool: dry

@@ -1,6 +1,7 @@
-import { ColumnType, Generated, Kysely, PostgresDialect, sql } from "kysely";
+import { type ColumnType, type Generated, Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
-import { assertEquals } from "https://deno.land/std@0.201.0/assert/mod.ts";
+import { deepStrictEqual as assertEquals } from "node:assert/strict";
+import { test } from "node:test";
 import { ExtendsPgQueryPlugin } from "../../src/index.ts";
 
 interface Database {
@@ -46,8 +47,8 @@ const db = new Kysely<Database>({
 });
 const TEST_ARRAY = [{ name: "alice" }, { name: "bob" }];
 
-Deno.test("json:insert", async (t) => {
-  await t.step("insert only primitive", () => {
+test("json:insert", async (t) => {
+  await t.test("insert only primitive", () => {
     // not null
     const res = db.insertInto("test").values({
       id: 0,
@@ -77,7 +78,7 @@ Deno.test("json:insert", async (t) => {
     assertEquals(res2.parameters[3], JSON.stringify(TEST_ARRAY));
   });
 
-  await t.step("insert with raw sql", () => {
+  await t.test("insert with raw sql", () => {
     // not null
     const res = db.insertInto("test").values({
       id: 0,
@@ -106,7 +107,7 @@ Deno.test("json:insert", async (t) => {
     assertEquals(res2.parameters[2], null);
   });
 
-  await t.step("insert multiple", () => {
+  await t.test("insert multiple", () => {
     const res = db.insertInto("test").values([
       { id: 0, users: TEST_ARRAY, created_at: new Date(0) },
       { id: 1, users: null, created_at: sql`CURRENT_TIMESTAMP` },
@@ -122,7 +123,7 @@ Deno.test("json:insert", async (t) => {
     assertEquals(res.parameters[4], null);
   });
 
-  await t.step("insert no json", () => {
+  await t.test("insert no json", () => {
     const res = db.insertInto("test3").values([
       { id: 0, created_at: new Date(0) },
     ]).compile();
@@ -133,8 +134,8 @@ Deno.test("json:insert", async (t) => {
   });
 });
 
-Deno.test("json:update", async (t) => {
-  await t.step("update without table alias", () => {
+test("json:update", async (t) => {
+  await t.test("update without table alias", () => {
     // not null
     const res = db.updateTable("test").set({
       users: TEST_ARRAY,
@@ -154,7 +155,7 @@ Deno.test("json:update", async (t) => {
     assertEquals(res2.parameters[0], null);
   });
 
-  await t.step("update with table alias", () => {
+  await t.test("update with table alias", () => {
     // not null
     const res = db.updateTable("test as t").set({
       users: TEST_ARRAY,
@@ -173,14 +174,14 @@ Deno.test("json:update", async (t) => {
   });
 });
 
-Deno.test("auto update", async (t) => {
-  await t.step("if not specified, auto update", () => {
+test("auto update", async (t) => {
+  await t.test("if not specified, auto update", () => {
     const res = db.updateTable("test").set({
       users: null,
     }).compile();
     assertEquals(res.sql.includes('"updated_at" = DEFAULT'), true);
   });
-  await t.step("if specified, no auto update", () => {
+  await t.test("if specified, no auto update", () => {
     const res = db.updateTable("test").set({
       users: null,
       updated_at: new Date(),
@@ -188,14 +189,14 @@ Deno.test("auto update", async (t) => {
     assertEquals(res.parameters.length, 2);
     assertEquals(res.sql.includes('"updated_at" = DEFAULT'), false);
   });
-  await t.step("auto update for no json table", () => {
+  await t.test("auto update for no json table", () => {
     const res = db.updateTable("test2").set({
       foo: "bar",
     }).compile();
     assertEquals(res.parameters.length, 1);
     assertEquals(res.sql.includes('"updated_at" = CURRENT_TIMESTAMP'), true);
   });
-  await t.step("auto update on conflict", () => {
+  await t.test("auto update on conflict", () => {
     const res = db.insertInto("test").values({
       id: 1,
       users: null,
@@ -204,7 +205,7 @@ Deno.test("auto update", async (t) => {
       .compile();
     assertEquals(res.sql.includes('"updated_at" = DEFAULT'), true);
   });
-  await t.step("auto update on conflict (no json column)", () => {
+  await t.test("auto update on conflict (no json column)", () => {
     const res = db.insertInto("test2").values({
       id: 1,
       foo: "",
@@ -216,8 +217,8 @@ Deno.test("auto update", async (t) => {
   });
 });
 
-Deno.test("other", async (t) => {
-  await t.step("no json & auto update", () => {
+test("other", async (t) => {
+  await t.test("no json & auto update", () => {
     const res1 = db.insertInto("test4").values({ id: 1 }).onConflict((oc) =>
       oc.column("id").doUpdateSet({ foo: "bar" })
     ).compile();
@@ -232,7 +233,7 @@ Deno.test("other", async (t) => {
     );
   });
 
-  await t.step("no json & no auto update", () => {
+  await t.test("no json & no auto update", () => {
     const res1 = db.insertInto("test5").values({ id: 1 }).compile();
     assertEquals(res1.sql, 'insert into "test5" ("id") values ($1)');
     const res2 = db.updateTable("test5").set({ id: 1 }).compile();

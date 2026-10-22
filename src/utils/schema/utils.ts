@@ -1,4 +1,4 @@
-import { Kysely, QueryResult, sql } from "kysely";
+import { Kysely, type QueryResult, sql } from "kysely";
 
 /** add/remove comment on target
  * @param db instance of kysely
@@ -8,7 +8,6 @@ import { Kysely, QueryResult, sql } from "kysely";
  * @returns result
  */
 export function commentOn(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   type:
     | "table"
@@ -44,7 +43,6 @@ type tableGrant =
   | "trigger";
 type sequenceGrant = "usage" | "select" | "update";
 export function grantDBObj(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   type: "table",
   grant: tableGrant | "all" | tableGrant[],
@@ -56,7 +54,6 @@ export function grantDBObj(
   withGrantOption?: boolean,
 ): Promise<QueryResult<unknown>>;
 export function grantDBObj(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   type: "sequence",
   grant: sequenceGrant | "all" | sequenceGrant[],
@@ -79,7 +76,6 @@ export function grantDBObj(
  * @returns result
  */
 export function grantDBObj(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   type: "table" | "sequence",
   grant: string | string[],
@@ -115,7 +111,6 @@ export function grantDBObj(
  * @returns result
  */
 export function updateRowLevelSecurity(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   table: string,
   mode: "disable" | "enable" | "force" | "no force",
@@ -136,7 +131,6 @@ export function updateRowLevelSecurity(
  * @returns result
  */
 export function createPolicy(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   table: string,
   options?: {
@@ -173,7 +167,6 @@ export function createPolicy(
  * @returns result
  */
 export function dropPolicy(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   table: string,
   name?: string,

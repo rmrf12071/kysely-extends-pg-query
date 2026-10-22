@@ -1,4 +1,4 @@
-import { ColumnType, Generated, Kysely, PostgresDialect, sql } from "kysely";
+import { type ColumnType, type Generated, Kysely, PostgresDialect, sql } from "kysely";
 import PgPool from "pg-pool";
 import {
   commentOn,
@@ -7,13 +7,14 @@ import {
   createPolicy,
   dropPolicy,
   DryMigrationPgPool,
-  DryMigrationQueries,
+  type DryMigrationQueries,
   grantDBObj,
   makePgSystemKysely,
-  SystemDatabase,
+  type SystemDatabase,
   updateRowLevelSecurity,
 } from "../../../src/index.ts";
-import { assertEquals } from "https://deno.land/std@0.201.0/assert/assert_equals.ts";
+import { deepStrictEqual as assertEquals } from "node:assert/strict";
+import { test } from "node:test";
 
 // from getting started of kysely
 export interface Database {
@@ -56,7 +57,6 @@ const db = new Kysely<Database & SystemDatabase>({
   },
 });
 const dryRunQueries: DryMigrationQueries = [];
-// deno-lint-ignore no-explicit-any
 const dry = new Kysely<any>({
   dialect: new PostgresDialect({
     pool: new DryMigrationPgPool({
@@ -71,7 +71,11 @@ const dry = new Kysely<any>({
   },
 });
 
-Deno.test("system", async () => {
+test("system", async (t) => {
+  t.after(async () => {
+    await Promise.all([postgres.destroy(), db.destroy(), dry.destroy()]);
+  });
+
   // check database
   const targetDB = await postgres.selectFrom("pg_database").selectAll().where(
     "datname",
@@ -210,8 +214,4 @@ Deno.test("system", async () => {
     sql: `create index "foo_index" on "foo" ("content")`,
     parameters: [],
   }]);
-
-  await postgres.destroy();
-  await db.destroy();
-  await dry.destroy();
 });

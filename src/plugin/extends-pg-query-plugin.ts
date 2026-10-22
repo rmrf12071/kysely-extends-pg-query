@@ -1,25 +1,24 @@
 import {
-  AliasNode,
-  AnyColumnWithTable,
-  ColumnNode,
-  InsertQueryNode,
-  KyselyPlugin,
-  OperationNode,
+  type AliasNode,
+  type AnyColumnWithTable,
+  type ColumnNode,
+  type InsertQueryNode,
+  type KyselyPlugin,
+  type OperationNode,
   OperationNodeTransformer,
-  PluginTransformQueryArgs,
-  PluginTransformResultArgs,
-  QueryResult,
-  RawNode,
-  RootOperationNode,
-  TableNode,
-  UnknownRow,
-  UpdateQueryNode,
-  ValueNode,
-  ValuesItemNode,
-  ValuesNode,
+  type PluginTransformQueryArgs,
+  type PluginTransformResultArgs,
+  type QueryResult,
+  type RawNode,
+  type RootOperationNode,
+  type TableNode,
+  type UnknownRow,
+  type UpdateQueryNode,
+  type ValueNode,
+  type ValuesItemNode,
+  type ValuesNode,
 } from "kysely";
 
-// deno-lint-ignore ban-types
 type StringWithSuggestion<T extends string> = T | (string & {});
 
 /**

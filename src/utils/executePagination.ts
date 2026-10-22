@@ -1,8 +1,8 @@
 import {
   Kysely,
-  ReferenceExpression,
-  SelectQueryBuilder,
-  Transaction,
+  type ReferenceExpression,
+  type SelectQueryBuilder,
+  type Transaction,
 } from "kysely";
 import ClearGroupbyPlugin from "../plugin/clear-groupby-plugin.ts";
 
@@ -39,7 +39,6 @@ export function validatePagination(
 type TotalOptionsType<DB, TB extends keyof DB> = {
   _default?: { limit: number; offset: number };
   distinctKey?: ReferenceExpression<DB, TB>;
-  // deno-lint-ignore no-explicit-any
   db?: Kysely<any> | Transaction<any>;
 };
 
@@ -143,7 +142,6 @@ export async function executeTotal<DB, TB extends keyof DB, O>(
 type PaginationOptionsType<DB, TB extends keyof DB> = {
   _default?: { currentPage: number; perPage: number };
   distinctKey?: ReferenceExpression<DB, TB>;
-  // deno-lint-ignore no-explicit-any
   db?: Kysely<any> | Transaction<any>;
 };
 

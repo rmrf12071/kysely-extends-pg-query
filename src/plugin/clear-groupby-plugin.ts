@@ -1,12 +1,12 @@
 import {
-  KyselyPlugin,
+  type KyselyPlugin,
   OperationNodeTransformer,
-  PluginTransformQueryArgs,
-  PluginTransformResultArgs,
-  QueryResult,
-  RootOperationNode,
-  SelectQueryNode,
-  UnknownRow,
+  type PluginTransformQueryArgs,
+  type PluginTransformResultArgs,
+  type QueryResult,
+  type RootOperationNode,
+  type SelectQueryNode,
+  type UnknownRow,
 } from "kysely";
 
 // ClearGroupbyPlugin: internal plugin

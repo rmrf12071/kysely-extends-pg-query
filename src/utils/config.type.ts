@@ -1,5 +1,5 @@
 import { createPgDatabase } from "./schema/system.ts";
-import { ConnectionOptions } from "node:tls";
+import { type ConnectionOptions } from "node:tls";
 
 export type UtilConfig = {
   /** target database name */

@@ -1,4 +1,4 @@
-import { ColumnType, Generated, Kysely, PostgresDialect } from "kysely";
+import { type ColumnType, type Generated, Kysely, PostgresDialect } from "kysely";
 import PgPool from "pg-pool";
 import {
   createPgDatabase,
@@ -8,7 +8,8 @@ import {
   makePgSystemKysely,
   validatePagination,
 } from "../../src/index.ts";
-import { assertEquals } from "https://deno.land/std@0.201.0/assert/assert_equals.ts";
+import { deepStrictEqual as assertEquals } from "node:assert/strict";
+import { test } from "node:test";
 
 // from getting started of kysely
 export interface Database {
@@ -50,7 +51,11 @@ const db = new Kysely<Database>({
   },
 });
 
-Deno.test("executePagination", async () => {
+test("executePagination", async (t) => {
+  t.after(async () => {
+    await Promise.all([postgres.destroy(), db.destroy()]);
+  });
+
   // check database
   const targetDB = await postgres.selectFrom("pg_database").selectAll().where(
     "datname",
@@ -237,7 +242,4 @@ Deno.test("executePagination", async () => {
     assertEquals(res.data.length, 3);
     assertEquals(res.total, 5);
   })();
-
-  await postgres.destroy();
-  await db.destroy();
 });

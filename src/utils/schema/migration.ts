@@ -1,8 +1,8 @@
 import {
-  PostgresCursor,
-  PostgresPool,
-  PostgresPoolClient,
-  PostgresQueryResult,
+  type PostgresCursor,
+  type PostgresPool,
+  type PostgresPoolClient,
+  type PostgresQueryResult,
 } from "kysely";
 import PgPool from "pg-pool";
 
@@ -14,13 +14,11 @@ export type DryMigrationQueries = {
 
 /** PgPool for dry mmigration */
 export class DryMigrationPgPool implements PostgresPool {
-  // deno-lint-ignore no-explicit-any
   #config: PgPool.Config<any>;
   #dryConfig: { queries: DryMigrationQueries };
   #client: DryMigrationPgPoolClient | undefined;
 
   constructor(
-    // deno-lint-ignore no-explicit-any
     config: PgPool.Config<any>,
     dryConfig: { queries: DryMigrationQueries },
   ) {
@@ -42,12 +40,10 @@ export class DryMigrationPgPool implements PostgresPool {
 /** PgPoolClient for dry migration */
 class DryMigrationPgPoolClient implements PostgresPoolClient {
   #dryConfig: { queries: DryMigrationQueries };
-  // deno-lint-ignore no-explicit-any
   #pool: PgPool<any>;
   #migrating = false;
 
   constructor(
-    // deno-lint-ignore no-explicit-any
     config: PgPool.Config<any>,
     dryConfig: { queries: DryMigrationQueries },
   ) {

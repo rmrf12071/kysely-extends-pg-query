@@ -5,9 +5,11 @@
   "main": "dist/src/index.js",
   "scripts": {
     "build": "deno run --allow-run --allow-read --allow-write scripts/build.ts",
-    "test": "deno test --allow-net --coverage=cov_profile && deno coverage cov_profile",
-    "test:simple": "deno test --allow-net",
-    "pre-publish": "npm run test:simple && npm run build && npm publish --dry-run"
+    "test": "node --test --experimental-test-coverage \"test/**/*.test.ts\"",
+    "test:simple": "node --test \"test/**/*.test.ts\"",
+    "pre-publish": "npm run test:simple && npm run build && npm publish --dry-run",
+    "test:unit": "node --test \"test/plugin/**/*.test.ts\"",
+    "test:types": "tsc --project tsconfig.test.json"
   },
   "bin": {
     "kysely-extends-pg-query": "dist/bin/node.js"

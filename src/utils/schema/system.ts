@@ -1,4 +1,4 @@
-import { Kysely, PostgresDialect, PostgresDialectConfig, sql } from "kysely";
+import { Kysely, PostgresDialect, type PostgresDialectConfig, sql } from "kysely";
 
 export interface SystemDatabase {
   // define only some columns
@@ -40,7 +40,6 @@ export function makePgSystemKysely(config: PostgresDialectConfig) {
  * @returns result
  */
 export function createPgRole(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   role: string,
   password?: string,
@@ -60,7 +59,6 @@ export function createPgRole(
  * @returns result
  */
 export function createPgDatabase(
-  // deno-lint-ignore no-explicit-any
   db: Kysely<any>,
   database: string,
   options?: {
