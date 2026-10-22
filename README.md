@@ -1,7 +1,7 @@
 # kysely-extends-pg-query
 
 `kysely-extends-pg-query` is the plugin of `Kysely`.  
-This plugin is developed with `Deno`, and also works `Node.js`(CommonJS).
+This plugin is developed with Node.js and TypeScript, and published as CommonJS.
 
 ## Features
 
@@ -15,14 +15,6 @@ This plugin is developed with `Deno`, and also works `Node.js`(CommonJS).
 
 ```bash
 npm install kysely-extends-pg-query
-```
-
-## Import for Deno
-
-"import via npm" is not supported. Please import by url as follows:
-
-```ts
-import { ExtendsPgQueryPlugin } from "https://raw.githubusercontent.com/rmrf12071/kysely-extends-pg-query/0.2.4/src/index.ts";
 ```
 
 ## Usage Example
@@ -136,3 +128,54 @@ NOTE: Migration reads folders recursively.
     await dropPolicy(db, "person");
   ```
 </details>
+
+## Development: tests
+
+Tests run directly from TypeScript on Node.js v24 or later using `node:test`
+and `node:assert/strict`. Builds also run on Node.js v24 or later.
+
+```bash
+npm ci
+npm run test:unit   # Plugin tests; no PostgreSQL required
+npm run test:types  # Type-check source and tests without emitting files
+npm run test:simple # All tests; requires local PostgreSQL
+npm test           # All tests with experimental Node.js coverage
+```
+
+The database tests connect to PostgreSQL at `127.0.0.1` as `postgres`,
+without an explicit password. They create test databases
+`kysely_pg_query_plugin_test` and `kysely_pg_query_plugin_test_system_utils`
+and roles `kysely_pqp` and `kysely_pqp_u`. Use a disposable development
+PostgreSQL instance. Existing test databases can affect subsequent runs.
+
+Start a disposable PostgreSQL instance with Docker Compose:
+
+```bash
+docker compose up -d --wait
+npm run test:simple
+docker compose down
+```
+
+The service listens on `127.0.0.1:5432` and uses passwordless authentication
+for local tests. Database data is stored in tmpfs and discarded when the
+container stops. To start fresh, run `docker compose down` followed by
+`docker compose up -d --wait`.
+
+Build the CommonJS package and type declarations with `npm run build`.
+The output is written to `dist/`; source files and Git state are left untouched.
+
+The npm package is distributed as CommonJS only, with TypeScript declarations.
+Both CommonJS and ESM applications can use the named API:
+
+```js
+// CommonJS
+const { ExtendsPgQueryPlugin } = require("kysely-extends-pg-query");
+```
+
+```js
+// ESM
+import { ExtendsPgQueryPlugin } from "kysely-extends-pg-query";
+```
+
+Run `npm run test:package` to build and check CommonJS loading, ESM named
+imports, and the declaration entry point. No PostgreSQL is required.

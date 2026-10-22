@@ -10,3 +10,7 @@ cov_profile/
 CHANGELOG.md
 package-lock.json
 tsconfig.json
+
+AGENTS.md
+docker-compose.yml
+tsconfig.test.json

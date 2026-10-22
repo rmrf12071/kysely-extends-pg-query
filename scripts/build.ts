@@ -1,50 +1,73 @@
-// stash changes
-let command = new Deno.Command("git", { args: ["stash", "-u"] });
-await command.output();
+import { chmodSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+import ts from "typescript";
 
-// update "import" to transplie
-async function updateImport(filePath: string) {
-  const decorder = new TextDecoder("utf-8");
-  const content = decorder.decode(await Deno.readFile(filePath));
-  const encoder = new TextEncoder();
-  const data = encoder.encode(
-    content.split("\n").map((line) =>
-      line.replace(/from "([^"]*)\.ts"/, `from "$1.js"`)
-    ).join("\n"),
-  );
-  await Deno.writeFile(filePath, data);
-}
-await updateImport("./bin/node.ts");
-await updateImport("./bin/node/migrate.ts");
-await updateImport("./bin/node/parseConfig.ts");
-await updateImport("./src/index.ts");
-await updateImport("./src/utils/config.type.ts");
-await updateImport("./src/utils/executePagination.ts");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const configPath = resolve(root, "tsconfig.json");
+const config = ts.readConfigFile(configPath, ts.sys.readFile);
+const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, root);
 
-// transpile to javascript
-try {
-  await Deno.remove("./dist", { recursive: true });
-} catch (_) { /* noop */ }
-const tsc = Deno.build.os == "windows"
-  ? ".\\node_modules\\.bin\\tsc.cmd"
-  : "./node_modules/.bin/tsc";
-command = new Deno.Command(tsc);
-const { code, stdout, stderr } = await command.output();
-console.log(code == 0 ? "success to transpile!" : "failed to transpile!!\n");
-console.log(new TextDecoder().decode(stdout));
-console.log(new TextDecoder().decode(stderr));
-
-// remove type files from bin
-try {
-  await Deno.remove("./dist/bin/node.d.ts");
-  for await (const entry of Deno.readDir("./dist/bin/node")) {
-    if (!entry.name.endsWith("d.ts")) continue;
-    await Deno.remove(`./dist/bin/node/${entry.name}`);
+// Rewrite relative module specifiers in memory; leave source files untouched.
+const host = ts.createCompilerHost(parsed.options);
+const readFile = host.readFile.bind(host);
+host.readFile = (fileName) => {
+  const text = readFile(fileName);
+  if (text === undefined || !fileName.endsWith(".ts") || fileName.endsWith(".d.ts")) {
+    return text;
   }
-} catch (_) { /* noop */ }
+  const source = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true);
+  const edits: { start: number; end: number; text: string }[] = [];
+  for (const statement of source.statements) {
+    if (!ts.isImportDeclaration(statement) && !ts.isExportDeclaration(statement)) continue;
+    const specifier = statement.moduleSpecifier;
+    if (!specifier || !ts.isStringLiteral(specifier)) continue;
+    if (!specifier.text.startsWith(".") || !specifier.text.endsWith(".ts")) continue;
+    edits.push({
+      start: specifier.getStart(source) + 1,
+      end: specifier.getEnd() - 1,
+      text: specifier.text.slice(0, -3) + ".js",
+    });
+  }
+  return edits.reverse().reduce(
+    (result, edit) => result.slice(0, edit.start) + edit.text + result.slice(edit.end),
+    text,
+  );
+};
 
-// pop stash
-command = new Deno.Command("git", { args: ["checkout", "."] });
-await command.output();
-command = new Deno.Command("git", { args: ["stash", "pop"] });
-await command.output();
+const program = ts.createProgram(parsed.fileNames, {
+  ...parsed.options,
+  noEmitOnError: true,
+}, host);
+const diagnostics = [
+  ...(config.error ? [config.error] : []),
+  ...parsed.errors,
+  ...ts.getPreEmitDiagnostics(program),
+];
+
+function report(errors: readonly ts.Diagnostic[]) {
+  console.error(ts.formatDiagnosticsWithColorAndContext(errors, {
+    getCanonicalFileName: (fileName) => fileName,
+    getCurrentDirectory: () => root,
+    getNewLine: () => "\n",
+  }));
+  process.exitCode = 1;
+}
+
+if (diagnostics.length > 0) {
+  report(diagnostics);
+} else {
+  rmSync(resolve(root, "dist"), { recursive: true, force: true });
+  // CLI declarations are not part of the public API.
+  const result = program.emit(undefined, (fileName, data) => {
+    if (fileName.endsWith(".d.ts") && fileName.startsWith(resolve(root, "dist/bin") + sep)) return;
+    host.writeFile(fileName, data, false);
+  });
+  if (result.emitSkipped || result.diagnostics.length > 0) {
+    report(result.diagnostics);
+  } else {
+    writeFileSync(resolve(root, "dist/package.json"), '{"type":"commonjs"}\n');
+    chmodSync(resolve(root, "dist/bin/node.js"), 0o755);
+    console.log("Build completed.");
+  }
+}
