@@ -1,5 +1,14 @@
 # kysely-extends-pg-query changelog
 
+## 0.3.0 (2026-10-23)
+
+- BREAKING CHANGE: require Node.js v22 or later; older versions are no longer supported. Development, tests, and builds require Node.js v24 or later.
+- fix: declare pg-pool as a peer dependency and include its public declaration types
+- chore: explicitly distribute CommonJS with a TypeScript declaration entry point
+- fix: use Dirent.parentPath for recursive migrations on Node.js v24
+- chore: migrate tests and npm build from Deno to Node.js
+- chore: add disposable PostgreSQL environment for tests
+
 ## 0.2.4
 
 - feat: add SSL support for migration

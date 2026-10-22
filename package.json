@@ -1,6 +1,6 @@
 {
   "name": "kysely-extends-pg-query",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "kysely plugin for PostgreSQL",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -28,16 +28,17 @@
   "homepage": "https://github.com/rmrf12071/kysely-extends-pg-query#readme",
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "@types/pg-pool": "^2.0.6",
     "kysely": "^0.27.3",
     "pg-pool": "^3.6.2",
     "typescript": "^5.4.5"
   },
   "peerDependencies": {
-    "kysely": "^0.27.3"
+    "kysely": "^0.27.3",
+    "pg-pool": "^3.6.2"
   },
   "dependencies": {
-    "esbuild-register": "^3.5.0"
+    "esbuild-register": "^3.5.0",
+    "@types/pg-pool": "^2.0.6"
   },
   "engines": {
     "node": ">=22.0.0"

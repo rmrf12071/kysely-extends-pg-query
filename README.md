@@ -16,8 +16,10 @@ Requires Node.js v22 or later. Development and builds require Node.js v24 or lat
 ## Installation for Node.js
 
 ```bash
-npm install kysely-extends-pg-query
+npm install kysely pg pg-pool kysely-extends-pg-query
 ```
+
+`kysely` and `pg-pool` are peer dependencies managed by the consuming application.
 
 ## Usage Example
 
@@ -42,7 +44,7 @@ const db = new Kysely<Database>({
   plugins: [
     new ExtendsPgQueryPlugin<Database>({
       jsonColumns: ["test.users"],
-      autoUpdates: [{ "test.updated_at": "DEFAULT" }],
+      autoUpdates: { "test.updated_at": "DEFAULT" },
     }),
   ],
 });
@@ -116,7 +118,8 @@ package.json
 ```
 
 Then, you can use `npm run migrate:init` and more.  
-NOTE: Migration reads folders recursively.
+NOTE: Migration reads folders recursively. TypeScript config and migration files
+continue to be loaded through `esbuild-register` in the 0.3.0 release.
 
 <details>
   <summary>Other features</summary>
@@ -181,3 +184,12 @@ import { ExtendsPgQueryPlugin } from "kysely-extends-pg-query";
 
 Run `npm run test:package` to build and check CommonJS loading, ESM named
 imports, and the declaration entry point. No PostgreSQL is required.
+
+## Checking the release package
+
+Before publishing, run `npm run test:types`, `npm run test:package`, and the
+PostgreSQL tests. Use `npm pack --pack-destination /tmp` to create an archive,
+then install that archive into a separate project to check package-name imports,
+TypeScript declarations, and the installed `kysely-extends-pg-query` command.
+The `test:package` script checks the local build; archive installation must be
+checked separately. `npm pack` does not publish the package.
