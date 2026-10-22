@@ -43,7 +43,7 @@ interface RecursiveFileMigrationProviderProps
 }
 
 /** FileMigrationProvider(collect recursively) */
-class RecursiveFileMigrationProvider implements MigrationProvider {
+export class RecursiveFileMigrationProvider implements MigrationProvider {
   #props: RecursiveFileMigrationProviderProps;
   constructor(props: RecursiveFileMigrationProviderProps) {
     this.#props = props;
@@ -66,13 +66,13 @@ class RecursiveFileMigrationProvider implements MigrationProvider {
           (file.name.endsWith(".mts") && !file.name.endsWith(".d.mts")))
       ) {
         const path = this.#props.path.join(
-          file.path,
+          file.parentPath,
           file.name,
         );
         register({ sourcefile: path });
         const migration = require(path);
         const migrationKey = this.#props.path.join(
-          file.path.substring(this.#props.migrationFolder.length),
+          file.parentPath.substring(this.#props.migrationFolder.length),
           file.name,
         )
           .replace(/\.[^.]*$/, "");

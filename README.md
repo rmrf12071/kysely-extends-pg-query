@@ -11,6 +11,8 @@ This plugin is developed with Node.js and TypeScript, and published as CommonJS.
 - Utility function for pagination
 - Commands for Node.js: migration
 
+Requires Node.js v22 or later. Development and builds require Node.js v24 or later.
+
 ## Installation for Node.js
 
 ```bash
