@@ -15,9 +15,13 @@ concurrency:
 
 jobs:
   test:
-    name: Test and build (Node.js 24)
+    name: Test and build (Node.js ${{ matrix.node }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['24', '26']
     services:
       postgres:
         image: postgres:17
@@ -38,7 +42,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
       - run: npm run test:types
@@ -46,9 +50,13 @@ jobs:
       - run: npm run test:package
 
   package:
-    name: Installed package (Node.js 22.0.0)
+    name: Installed package (Node.js ${{ matrix.node }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.0.0', '26']
     steps:
       - uses: actions/checkout@v7
         with:
@@ -63,7 +71,7 @@ jobs:
         run: node scripts/check-installed-package.mjs prepare "$RUNNER_TEMP/package-consumer"
       - uses: actions/setup-node@v7
         with:
-          node-version: '22.0.0'
+          node-version: ${{ matrix.node }}
           package-manager-cache: false
       - name: Install archive with peer dependencies
         working-directory: ${{ runner.temp }}/package-consumer
