@@ -1,12 +1,11 @@
 import { promises as fsPromises } from "node:fs";
 import * as path from "node:path";
-import process from "node:process";
 import {
-  FileMigrationProviderProps,
+  type FileMigrationProviderProps,
   Kysely,
-  LogConfig,
-  Migration,
-  MigrationProvider,
+  type LogConfig,
+  type Migration,
+  type MigrationProvider,
   Migrator,
   PostgresDialect,
 } from "kysely";
@@ -16,9 +15,9 @@ import {
   createPgDatabase,
   createPgRole,
   DryMigrationPgPool,
-  DryMigrationQueries,
-  SystemDatabase,
-  UtilConfig,
+  type DryMigrationQueries,
+  type SystemDatabase,
+  type UtilConfig,
 } from "../../src/index.ts";
 import { getPath } from "./utils.ts";
 
@@ -149,52 +148,52 @@ export async function migrate(
       : outputLog,
   });
 
-  const migrator = new Migrator({
-    db,
-    provider: new RecursiveFileMigrationProvider({
-      fs: fsPromises,
-      path,
-      migrationFolder: getPath(config.migrate),
-    }),
-  });
-
-  const { error, results } = mode == "latest"
-    ? await migrator.migrateToLatest()
-    : await migrator.migrateDown();
-
-  console.log("");
-  if (!dry) {
-    results?.forEach((it) => {
-      if (it.status === "Success") {
-        console.log(
-          `\u001b[36mmigration "${it.migrationName}" was executed successfully\u001b[0m`,
-        );
-      } else if (it.status === "Error") {
-        console.error(
-          `\u001b[35mfailed to execute migration "${it.migrationName}"\u001b[0m`,
-        );
-      }
+  try {
+    const migrator = new Migrator({
+      db,
+      provider: new RecursiveFileMigrationProvider({
+        fs: fsPromises,
+        path,
+        migrationFolder: getPath(config.migrate),
+      }),
     });
-  } else {
-    const dryResults = dryRunQueries.map((query) => query.sql).join("\n");
-    if (config.dryMigrateOutput) {
-      await fsPromises.writeFile(config.dryMigrateOutput, dryResults + "\n", {
-        encoding: "utf8",
+
+    const { error, results } = mode == "latest"
+      ? await migrator.migrateToLatest()
+      : await migrator.migrateDown();
+
+    console.log("");
+    if (!dry) {
+      results?.forEach((it) => {
+        if (it.status === "Success") {
+          console.log(
+            `\u001b[36mmigration "${it.migrationName}" was executed successfully\u001b[0m`,
+          );
+        } else if (it.status === "Error") {
+          console.error(
+            `\u001b[35mfailed to execute migration "${it.migrationName}"\u001b[0m`,
+          );
+        }
       });
     } else {
-      console.log(dryResults);
+      const dryResults = dryRunQueries.map((query) => query.sql).join("\n");
+      if (config.dryMigrateOutput) {
+        await fsPromises.writeFile(config.dryMigrateOutput, dryResults + "\n", {
+          encoding: "utf8",
+        });
+      } else {
+        console.log(dryResults);
+      }
     }
-  }
-  if (results?.length == 0) {
-    console.log("\u001b[36malready latest\u001b[0m");
-  }
+    if (results?.length == 0) {
+      console.log("\u001b[36malready latest\u001b[0m");
+    }
 
-  if (error) {
-    console.error("\u001b[35mfailed to migrate\u001b[0m");
-    console.error(error);
-    process.exit(1);
+    if (error) {
+      console.error("\u001b[35mfailed to migrate\u001b[0m");
+      throw error;
+    }
+  } finally {
+    await db.destroy();
   }
-
-  await db.destroy();
-  process.exit(0); // for dry run
 }

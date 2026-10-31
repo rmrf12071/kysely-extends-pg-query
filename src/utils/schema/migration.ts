@@ -16,7 +16,7 @@ export type DryMigrationQueries = {
 export class DryMigrationPgPool implements PostgresPool {
   #config: PgPool.Config<any>;
   #dryConfig: { queries: DryMigrationQueries };
-  #client: DryMigrationPgPoolClient | undefined;
+  #clients = new Set<DryMigrationPgPoolClient>();
 
   constructor(
     config: PgPool.Config<any>,
@@ -27,14 +27,13 @@ export class DryMigrationPgPool implements PostgresPool {
   }
   connect(): Promise<PostgresPoolClient> {
     const client = new DryMigrationPgPoolClient(this.#config, this.#dryConfig);
-    this.#client = client;
+    this.#clients.add(client);
     return new Promise((resolve) => resolve(client));
   }
-  end(): Promise<void> {
-    if (!this.#client) return Promise.resolve();
-    const client = this.#client;
-    this.#client = undefined;
-    return client.end();
+  async end(): Promise<void> {
+    const clients = [...this.#clients];
+    this.#clients.clear();
+    await Promise.all(clients.map((client) => client.end()));
   }
 }
 /** PgPoolClient for dry migration */
