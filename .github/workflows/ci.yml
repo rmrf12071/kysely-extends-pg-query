@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test and build (Node.js 24)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres -d postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:types
+      - run: npm run test:simple
+      - run: npm run test:package
+
+  package:
+    name: Installed package (Node.js 22.0.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Prepare archive and consumer project
+        run: node scripts/check-installed-package.mjs prepare "$RUNNER_TEMP/package-consumer"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.0.0'
+          package-manager-cache: false
+      - name: Install archive with peer dependencies
+        working-directory: ${{ runner.temp }}/package-consumer
+        run: npm install --no-audit --no-fund
+      - name: Check installed package
+        run: node scripts/check-installed-package.mjs check "$RUNNER_TEMP/package-consumer"
