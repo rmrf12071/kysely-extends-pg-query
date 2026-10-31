@@ -200,7 +200,9 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
 
     // onConflict: replace JSON column with `JSON.stringify`
     const onConflict = (() => {
-      if (!rawOnConflict) return rawOnConflict;
+      if (!rawOnConflict || rawOnConflict.doNothing || !rawOnConflict.updates) {
+        return rawOnConflict;
+      }
       const updates = [];
       if (rawOnConflict.updates) {
         for (const item of rawOnConflict.updates) {

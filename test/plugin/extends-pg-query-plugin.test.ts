@@ -70,6 +70,16 @@ test("json:onConflict without auto updates", async (t) => {
   });
 });
 
+test("onConflict doNothing preserves the operation node", () => {
+  const query = db.insertInto("test4").values({ id: 1 })
+    .onConflict((oc) => oc.column("id").doNothing());
+  const node = query.toOperationNode();
+  assertEquals(node.onConflict?.updates, undefined);
+  const result = query.compile();
+  assertEquals(result.sql, 'insert into "test4" ("id") values ($1) on conflict ("id") do nothing');
+  assertEquals(result.parameters, [1]);
+});
+
 test("json:insert", async (t) => {
   await t.test("insert only primitive", () => {
     // not null
