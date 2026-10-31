@@ -138,6 +138,8 @@ continue to be loaded through `esbuild-register` in the 0.3.0 release.
 
 Tests run directly from TypeScript on Node.js v24 or later using `node:test`
 and `node:assert/strict`. Builds also run on Node.js v24 or later.
+Node.js v24 remains the primary development version. CI also tests and builds
+on v26, and checks installed package archives on v22.0.0 and v26.
 
 ```bash
 npm ci

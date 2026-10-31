@@ -1,5 +1,11 @@
 # kysely-extends-pg-query changelog
 
+## 0.3.1 (2026-10-31)
+
+- fix: serialize JSON values in conflict updates without auto-update settings, including when the INSERT omits the JSON column
+- fix: preserve `ON CONFLICT DO NOTHING` without adding automatic updates
+- fix: release migration connections on success and failure, and let the CLI exit naturally with the appropriate exit code
+
 ## 0.3.0 (2026-10-23)
 
 - BREAKING CHANGE: require Node.js v22 or later; older versions are no longer supported. Development, tests, and builds require Node.js v24 or later.
