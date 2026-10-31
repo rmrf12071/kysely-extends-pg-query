@@ -47,6 +47,29 @@ const db = new Kysely<Database>({
 });
 const TEST_ARRAY = [{ name: "alice" }, { name: "bob" }];
 
+test("json:onConflict without auto updates", async (t) => {
+  await t.test("serialize JSON when the insert omits the JSON column", () => {
+    const result = db.insertInto("test3").values({ id: 1 })
+      .onConflict((oc) => oc.column("id").doUpdateSet({ users: TEST_ARRAY })).compile();
+    assertEquals(result.sql, 'insert into "test3" ("id") values ($1) on conflict ("id") do update set "users" = $2');
+    assertEquals(result.parameters, [1, JSON.stringify(TEST_ARRAY)]);
+  });
+  await t.test("serialize insert and conflict values", () => {
+    const result = db.insertInto("test3").values([{ id: 1, users: TEST_ARRAY }, { id: 2, users: null }])
+      .onConflict((oc) => oc.column("id").doUpdateSet({ users: TEST_ARRAY })).compile();
+    assertEquals(result.parameters, [1, JSON.stringify(TEST_ARRAY), 2, null, JSON.stringify(TEST_ARRAY)]);
+  });
+  await t.test("preserve null and SQL expressions", () => {
+    const result = db.insertInto("test3").values({ id: 1 })
+      .onConflict((oc) => oc.column("id").doUpdateSet({ users: null })).compile();
+    assertEquals(result.parameters, [1, null]);
+    const expression = db.insertInto("test3").values({ id: 1 })
+      .onConflict((oc) => oc.column("id").doUpdateSet((eb) => ({ users: eb.ref("excluded.users") }))).compile();
+    assertEquals(expression.sql, 'insert into "test3" ("id") values ($1) on conflict ("id") do update set "users" = "excluded"."users"');
+    assertEquals(expression.parameters, [1]);
+  });
+});
+
 test("json:insert", async (t) => {
   await t.test("insert only primitive", () => {
     // not null
@@ -204,6 +227,13 @@ test("auto update", async (t) => {
     }).onConflict((oc) => oc.column("id").doUpdateSet({}).where("id", "=", 1))
       .compile();
     assertEquals(res.sql.includes('"updated_at" = DEFAULT'), true);
+  });
+  await t.test("explicit conflict update takes precedence", () => {
+    const date = new Date(0);
+    const result = db.insertInto("test").values({ id: 1, users: null, created_at: date })
+      .onConflict((oc) => oc.column("id").doUpdateSet({ users: TEST_ARRAY, updated_at: date })).compile();
+    assertEquals(result.sql.includes('"updated_at" = DEFAULT'), false);
+    assertEquals(result.parameters, [1, null, date, JSON.stringify(TEST_ARRAY), date]);
   });
   await t.test("auto update on conflict (no json column)", () => {
     const res = db.insertInto("test2").values({

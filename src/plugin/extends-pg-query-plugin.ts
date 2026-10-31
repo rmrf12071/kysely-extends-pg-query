@@ -146,7 +146,7 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
 
     const { values: rawValues, onConflict: rawOnConflict, ...rest } = node;
 
-    // if target columns don't include json column and no auto update, call super and return
+    // Find JSON columns in the INSERT; conflict updates may target other columns.
     const targetIndexes = (() => {
       if (!jsonTargets) return [];
       const insertTargets = node.columns.map((item) => item.column.name);
@@ -156,7 +156,7 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
       }
       return arr;
     })();
-    if (targetIndexes.length == 0 && !autoUpdates) {
+    if (targetIndexes.length == 0 && !autoUpdates && !rawOnConflict?.updates) {
       return super.transformInsertQuery(node);
     }
 
@@ -200,7 +200,7 @@ class ExtendsPgQueryTransformer extends OperationNodeTransformer {
 
     // onConflict: replace JSON column with `JSON.stringify`
     const onConflict = (() => {
-      if (!rawOnConflict || autoUpdateTargets.size == 0) return rawOnConflict;
+      if (!rawOnConflict) return rawOnConflict;
       const updates = [];
       if (rawOnConflict.updates) {
         for (const item of rawOnConflict.updates) {
